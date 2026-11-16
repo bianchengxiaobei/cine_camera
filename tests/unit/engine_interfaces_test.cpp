@@ -207,6 +207,9 @@ TEST_CASE("Entity world exposes time, frame clocks and writable transforms", "[u
     REQUIRE(world.deltaTime(UpdateClock::Late) == Catch::Approx(0.016f));
     REQUIRE(world.fixedDeltaTime() == Catch::Approx(0.02f));
     REQUIRE(world.time() == Catch::Approx(12.5f));
+    REQUIRE(world.unscaledDeltaTime(UpdateClock::Fixed) == Catch::Approx(0.02f));
+    REQUIRE(world.unscaledDeltaTime(UpdateClock::Late) == Catch::Approx(0.016f));
+    REQUIRE(world.unscaledTime() == Catch::Approx(12.5f));
     REQUIRE(world.frame(UpdateClock::Fixed) == 50);
     REQUIRE(world.frame(UpdateClock::Late) == 100);
     REQUIRE(world.viewportSize().x == 1920.0f);

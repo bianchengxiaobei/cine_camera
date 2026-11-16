@@ -1,12 +1,15 @@
 # 24 Confiner 2D
 
-P4-02 slice: an orthographic camera follows a target over an XY plane while
+P6-02 slice: an orthographic camera follows a target over an XY plane while
 `Confiner2D` keeps the camera's viewport inside a closed polygon. The green
 rectangle is the confined screen footprint, the grey rectangle is the desired
-footprint, and the cyan outline is the bounding shape.
+footprint, and the cyan outline is the bounding shape. The magenta outline is
+the current baked solution, including skeleton padding.
 
-The default L-room is concave. `V` cycles the L-room, a box, and no confining
-shape. `D` toggles corner damping and `S` toggles edge slowing.
+The default L-room is concave and the oversize-window path is enabled, so the
+HUD shows `baking` progress before the skeleton becomes available. `V` cycles
+the L-room, a box, and no confining shape. `D` toggles corner damping and `S`
+toggles edge slowing.
 
 ## Controls
 

@@ -3,7 +3,8 @@
 P2-09 vertical slice: three weighted, moving members drive a
 `cinerig::targets::TargetGroup`. The camera follows the group through
 `TargetRef::Group`; position and rotation modes, weights, bounds, and the
-group sphere are shown live.
+group sphere are shown live. P6-04 adds the group update method, a per-frame
+cache, and an owner entity that receives the computed group transform.
 
 ## Controls
 
@@ -14,8 +15,9 @@ group sphere are shown live.
 - `R`: reset modes, weights, and camera state
 - `Esc`: quit
 
-The HUD shows group position, modes, member count, bounding sphere, bounds,
-weight preset, controls, and frame count.
+The HUD shows group position, modes, update method, group-entity write-back
+status, member count, bounding sphere, bounds, weight preset, controls, and
+frame count.
 
 ## Run
 

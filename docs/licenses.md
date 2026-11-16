@@ -1,22 +1,22 @@
 # License Review Notes
 
-Status: inventory complete; distribution approval and CineRig's own license
-selection remain open.
+Status: inventory complete; MIT selected; notices bundled. Distribution
+approval remains the project owner's responsibility.
 
 This document records the dependency licenses found in the repository and build
 configuration. It is an engineering inventory, not legal advice.
 
 ## CineRig
 
-CineRig does not yet have a root `LICENSE` file. Selecting and adding the
-project's distribution license is a release blocker and requires the project
-owner's decision.
+CineRig is distributed under the MIT License. The root [LICENSE](../LICENSE)
+contains the project copyright notice and license text. Selected on 2026-11-16.
+The bundled full license texts and dependency notices are in
+[THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
 
 The reference project, Unity Cinemachine, is used only as a behavioral
 specification. No C# runtime code, Unity assets, prefabs, scenes, or editor
 tooling are vendored or copied. The reference project's Unity Companion License
-does not grant a license to CineRig as an independent project; release approval
-must review this boundary explicitly.
+does not grant a license to CineRig as an independent project.
 
 ## Runtime
 
@@ -27,8 +27,8 @@ libraries. It does not link SDL3, OpenGL, glad, Catch2, Clipper2, or GLM.
 
 | Component | Location | Use | License |
 | --- | --- | --- | --- |
-| glad 2.0.8 generated loader | `third_party/glad/` | Example OpenGL loading | MIT for the generated loader; Khronos headers carry Apache-2.0 and MIT terms; see `third_party/glad/LICENSE` |
-| stb_easy_font | `third_party/stb/stb_easy_font.h` | Example HUD text | MIT or public domain, at the user's choice; text is embedded in the header |
+| glad 2.0.8 generated loader | `third_party/glad/` | Example OpenGL loading | `(WTFPL OR CC0-1.0) AND Apache-2.0`; the glad project license is MIT and Khronos headers carry Apache-2.0/MIT terms |
+| stb_easy_font | `third_party/stb/stb_easy_font.h` | Example HUD text | MIT or public domain, at the user's choice; CineRig selects MIT |
 
 ## Fetched At Configure Time
 
@@ -44,10 +44,12 @@ part of the installed `cinerig` package.
 
 ## Release Actions
 
-- [ ] Choose and add CineRig's root `LICENSE`.
-- [ ] Generate a `THIRD_PARTY_NOTICES` bundle containing the full license texts
-  for everything included in the release artifact.
-- [ ] Include SDL3 and glad notices if examples are distributed.
-- [ ] Include Catch2 notices if tests or test binaries are distributed.
-- [ ] Confirm that no Unity Cinemachine code, assets, or package contents are
+- [x] Choose and add CineRig's root `LICENSE` (MIT).
+- [x] Generate a `THIRD_PARTY_NOTICES.md` bundle containing the full license
+  texts for bundled, fetched, and distributable components.
+- [x] Include SDL3 and glad notices for example distribution.
+- [x] Include Catch2 notices for test/source distribution.
+- [x] Confirm that no Unity Cinemachine code, assets, or package contents are
   present in the release artifact.
+- [ ] Project owner performs the final distribution/legal approval before
+  shipping a release artifact outside the project.

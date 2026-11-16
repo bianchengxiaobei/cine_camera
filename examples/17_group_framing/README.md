@@ -19,6 +19,15 @@ bounds, and the central marker is the group framing target.
 The HUD shows member count, group center and bounds, camera distance, framing
 modes, framing size, damping, and the active lens settings.
 
+## Confiner2D compatibility
+
+When an enabled `components::Confiner2D` extension is attached to the same
+camera, `GroupFraming` automatically selects the Body stage instead of its usual
+Aim stage. If framing changes the orthographic size, it invalidates the
+Confiner2D lens cache so the next confiner pass bakes against the new frustum.
+Attach or detach the confiner before the first update, or call
+`GroupFraming::reset()` after changing the extension set.
+
 ## Run
 
 ```powershell

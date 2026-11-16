@@ -67,6 +67,18 @@ public:
     virtual float fixedDeltaTime() const = 0;
     virtual float time() const = 0;
 
+    // Optional unscaled time hooks. Adapters that support pausing or
+    // slow-motion override these; the defaults preserve scaled time.
+    virtual float unscaledDeltaTime(UpdateClock clock) const
+    {
+        return deltaTime(clock);
+    }
+
+    virtual float unscaledTime() const
+    {
+        return time();
+    }
+
     // Late returns the global render frame, Fixed the fixed-step frame.
     virtual std::uint64_t frame(UpdateClock clock) const = 0;
 

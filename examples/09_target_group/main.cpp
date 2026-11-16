@@ -92,6 +92,13 @@ const char* rotationModeName(cinerig::targets::TargetGroup::RotationMode mode)
         : "Manual";
 }
 
+const char* updateMethodName(cinerig::targets::TargetGroup::GroupUpdateMethod method)
+{
+    return method == cinerig::targets::TargetGroup::GroupUpdateMethod::Fixed
+        ? "Fixed"
+        : "Late";
+}
+
 void drawBox(
     cinerig::examples::GlRenderer& renderer,
     const cinerig::math::Bounds& bounds,
@@ -158,8 +165,15 @@ int main(int argc, char** argv)
         });
     }
 
+    const cinerig::EntityId groupEntity = world.createEntity({
+        cinerig::math::Vec3::zero,
+        cinerig::math::Quat::identity(),
+        cinerig::math::Vec3::one,
+    });
+
     auto ownedGroup = std::make_unique<cinerig::targets::TargetGroup>(world);
     auto* group = ownedGroup.get();
+    group->groupEntity = groupEntity;
     group->addMember(memberEntities[0], 1.0f, 0.45f);
     group->addMember(memberEntities[1], 2.0f, 0.75f);
     group->addMember(memberEntities[2], 1.0f, 0.35f);
@@ -362,6 +376,12 @@ int main(int argc, char** argv)
         app.hud().addLine("Group position", groupLine.str());
         app.hud().addLine("Position mode", positionModeName(group->positionMode));
         app.hud().addLine("Rotation mode", rotationModeName(group->rotationMode));
+        app.hud().addLine("Update method", updateMethodName(group->updateMethod));
+
+        std::ostringstream groupEntityLine;
+        groupEntityLine << groupEntity << " "
+                        << (group->writeBackSucceeded() ? "write-back ok" : "write-back unavailable");
+        app.hud().addLine("Group entity", groupEntityLine.str());
 
         std::ostringstream memberLine;
         memberLine << memberEntities.size() << " members";

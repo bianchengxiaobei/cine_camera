@@ -10,10 +10,17 @@
 namespace cinerig
 {
 
+enum class UpdateClock : std::uint8_t;
+
 class TargetGroup
 {
 public:
     virtual ~TargetGroup() = default;
+
+    virtual void update(UpdateClock clock)
+    {
+        (void)clock;
+    }
 
     virtual bool isValid() const = 0;
     virtual bool isEmpty() const = 0;

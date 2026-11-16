@@ -406,9 +406,20 @@ void CameraSystem::prepareTracker(UpdateClock clock)
 void CameraSystem::update(UpdateClock clock, float deltaTime)
 {
     const bool smart = config_.updateMethod == UpdateMethod::Smart;
+    updateTargetGroups(clock);
     prepareBrains(clock);
     updateCameras(clock, deltaTime, config_.channelMask, config_.worldUp, smart);
     processBrains(clock, deltaTime);
+}
+
+void CameraSystem::updateTargetGroups(UpdateClock clock)
+{
+    for (auto& [id, group] : targetGroups_)
+    {
+        (void)id;
+        if (group)
+            group->update(clock);
+    }
 }
 
 void CameraSystem::updateCameras(

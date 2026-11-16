@@ -229,7 +229,7 @@ ImpulseManager::ImpulseManager(IEntityWorld& world) noexcept
 
 float ImpulseManager::currentTime() const noexcept
 {
-    return world_.time();
+    return ignoreTimeScale ? world_.unscaledTime() : world_.time();
 }
 
 std::unique_ptr<ImpulseEvent> ImpulseManager::takeExpiredEvent()

@@ -18,6 +18,7 @@
 #include <cinerig/core/bezier_spline.hpp>
 #include <cinerig/core/camera_state_blend.hpp>
 #include <cinerig/runtime/camera_system.hpp>
+#include <cinerig/targets/target_group.hpp>
 
 namespace
 {
@@ -327,4 +328,56 @@ TEST_CASE(
     report("BezierSpline::evaluatePosition", timing, kSplineEvaluateBudgetNs);
     REQUIRE(sink > 0.0f);
     REQUIRE(timing.medianNs < kSplineEvaluateBudgetNs);
+}
+
+TEST_CASE(
+    "TargetGroup steady-state updates perform no heap allocations",
+    "[performance][allocation]")
+{
+    FakeEntityWorld world;
+    const EntityId owner = 100;
+    world.add(owner, Transform{});
+    for (EntityId id = 1; id <= 4; ++id)
+    {
+        world.add(
+            id,
+            Transform{
+                {static_cast<float>(id), 0.0f, 0.0f},
+                math::Quat::identity(),
+                math::Vec3::one,
+            });
+    }
+
+    cinerig::targets::TargetGroup group(world);
+    group.groupEntity = owner;
+    group.positionMode = cinerig::targets::TargetGroup::PositionMode::GroupAverage;
+    for (EntityId id = 1; id <= 4; ++id)
+        group.addMember(id, 1.0f, 0.5f);
+
+    for (std::uint64_t frame = 1; frame <= 4; ++frame)
+    {
+        world.setFrame(UpdateClock::Late, frame);
+        group.update(UpdateClock::Late);
+    }
+
+    std::size_t allocations = 0;
+    {
+        cinerig::bench::AllocationScope scope;
+        for (std::uint64_t frame = 5; frame <= 34; ++frame)
+        {
+            world.setFrame(UpdateClock::Late, frame);
+            group.update(UpdateClock::Late);
+        }
+        allocations = scope.finish();
+    }
+
+    std::printf(
+        "[perf] target-group steady-state allocations: %zu%s\n",
+        allocations,
+        kEnforceZeroAllocations
+            ? ""
+            : " (Debug CRT container proxies; zero enforced in Release)");
+    REQUIRE(group.targetCount() == 4);
+    if constexpr (kEnforceZeroAllocations)
+        REQUIRE(allocations == 0);
 }

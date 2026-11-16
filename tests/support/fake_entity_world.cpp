@@ -30,6 +30,20 @@ void FakeEntityWorld::setDeltaTime(UpdateClock clock, float delta)
         lateDelta_ = delta;
 }
 
+void FakeEntityWorld::setUnscaledDeltaTime(UpdateClock clock, float delta)
+{
+    if (clock == UpdateClock::Fixed)
+    {
+        unscaledFixedDelta_ = delta;
+        hasUnscaledFixedDelta_ = true;
+    }
+    else
+    {
+        unscaledLateDelta_ = delta;
+        hasUnscaledLateDelta_ = true;
+    }
+}
+
 void FakeEntityWorld::setFrame(UpdateClock clock, std::uint64_t frame)
 {
     if (clock == UpdateClock::Fixed)
@@ -41,6 +55,12 @@ void FakeEntityWorld::setFrame(UpdateClock clock, std::uint64_t frame)
 void FakeEntityWorld::setTime(float time)
 {
     time_ = time;
+}
+
+void FakeEntityWorld::setUnscaledTime(float time)
+{
+    unscaledTime_ = time;
+    hasUnscaledTime_ = true;
 }
 
 void FakeEntityWorld::setWorldUp(math::Vec3 up)
@@ -75,7 +95,13 @@ void FakeEntityWorld::reset()
     writable_.clear();
     fixedDelta_ = 1.0f / 60.0f;
     lateDelta_ = 1.0f / 60.0f;
+    unscaledFixedDelta_ = 0.0f;
+    unscaledLateDelta_ = 0.0f;
     time_ = 0.0f;
+    unscaledTime_ = 0.0f;
+    hasUnscaledFixedDelta_ = false;
+    hasUnscaledLateDelta_ = false;
+    hasUnscaledTime_ = false;
     fixedFrame_ = 0;
     lateFrame_ = 0;
     worldUp_ = math::Vec3::up;
@@ -129,6 +155,20 @@ float FakeEntityWorld::fixedDeltaTime() const
 float FakeEntityWorld::time() const
 {
     return time_;
+}
+
+float FakeEntityWorld::unscaledDeltaTime(UpdateClock clock) const
+{
+    if (clock == UpdateClock::Fixed && hasUnscaledFixedDelta_)
+        return unscaledFixedDelta_;
+    if (clock == UpdateClock::Late && hasUnscaledLateDelta_)
+        return unscaledLateDelta_;
+    return deltaTime(clock);
+}
+
+float FakeEntityWorld::unscaledTime() const
+{
+    return hasUnscaledTime_ ? unscaledTime_ : time_;
 }
 
 std::uint64_t FakeEntityWorld::frame(UpdateClock clock) const

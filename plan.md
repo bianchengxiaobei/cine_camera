@@ -1,8 +1,8 @@
 # CineRig — Engine-Agnostic Camera Rig Runtime
 
-Status: P0–P5 feature work complete on Windows; release readiness in progress  
-Version: 0.1.0  
-Target: C++20  
+Status: P0–P5 feature work complete on Windows; P6 runtime parity follow-up complete (P6-01 through P6-06); release readiness in progress (Linux validation pending; MIT license, notices, and release notes complete)<br>
+Version: 0.1.0<br>
+Target: C++20<br>
 Reference implementation: Unity Cinemachine 3.1.x (`com.unity.cinemachine`)
 
 ---
@@ -97,6 +97,9 @@ Reference implementation: Unity Cinemachine 3.1.x (`com.unity.cinemachine`)
 CineRig/
 ├── plan.md
 ├── README.md
+├── CHANGELOG.md
+├── LICENSE
+├── THIRD_PARTY_NOTICES.md
 ├── CMakeLists.txt
 ├── CMakePresets.json
 ├── .gitignore
@@ -131,10 +134,11 @@ CineRig/
     ├── c-api.md
     ├── licenses.md
     ├── release-readiness.md
-    └── tasks/                  # P0-01 … P5-07, indexed by tasks/README.md
+    ├── runtime-parity.md       # P6 gap analysis and deferred items
+    └── tasks/                  # P0-01 … P6-06, indexed by tasks/README.md
 ```
 
-P2–P5 的任务文档在进入对应阶段前创建，避免过早写空文档；当前均已创建。发布前检查项见 [docs/release-readiness.md](docs/release-readiness.md)。
+P2–P5 的任务文档在进入对应阶段前创建，避免过早写空文档；当前均已创建。P6 为 P0–P5 完成后的运行时行为补齐计划，详见 [docs/runtime-parity.md](docs/runtime-parity.md)。发布前检查项见 [docs/release-readiness.md](docs/release-readiness.md)。
 
 ## 6. 公共 API 草图
 
@@ -204,7 +208,10 @@ API 设计约束：
 | 噪声 | `NoiseSettings`、`CinemachineBasicMultiChannelPerlin`、`GaussianFilter` | `NoiseProfile`、`PerlinNoise`、`GaussianFilter` | P3 |
 | Impulse | `CinemachineImpulseManager`、`CinemachineImpulseDefinition`、`CinemachineImpulseSource`、`CinemachineImpulseListener` | 同名类 | P3 |
 | 碰撞/约束 | `CinemachineDeoccluder`、`CinemachineDecollider`、`CinemachineConfiner3D` | 同名类 + `IPhysicsWorld` | P3 |
-| 2D | `CinemachineConfiner2D`、`ConfinerOven` | `Confiner2D` + 多边形缓存 | P4 |
+| 镜头质量 | `CinemachineShotQualityEvaluator` | `ShotQualityEvaluator` | P6 |
+| Impulse 辅助 | `CinemachineFixedSignal`、`CinemachineExternalImpulseListener` | `FixedSignal`、`ExternalImpulseListener` | P6 |
+| 时间缩放 | Brain/Impulse 的 `IgnoreTimeScale` | `BrainConfig` + `ImpulseManager` | P6 |
+| 2D | `CinemachineConfiner2D`、`ConfinerOven` | `Confiner2D` + 多边形缓存 | P4（P6-02 已补 skeleton/padding） |
 | Spline | `CinemachineSplineDolly`、`CinemachineSplineCart`、`CinemachineSplineRoll`、`CinemachineSplineDollyLookAtTargets` | `BezierSpline` + 同名组件 | P4 |
 | 管理器 | `CinemachineMixingCamera`、`CinemachineClearShot`、`CinemachineSequencerCamera`、`CinemachineStateDrivenCamera` | 同名类 | P4 |
 | 后期/覆盖层 | `CinemachineStoryboard`、`CinemachinePixelPerfect`、PostProcessing | `StoryboardExtension`、`PixelPerfectExtension`、`IPostProcessor` | P5 |
@@ -310,7 +317,29 @@ API 设计约束：
 - 转写原项目测试场景，补齐 golden 数据。
 - 性能基准、功能矩阵、集成文档。
 
-状态：Windows Debug/Release 已完成；Linux 实机验证、许可证复核与发布检查待收尾，见 [release-readiness.md](docs/release-readiness.md)。
+状态：Windows Debug/Release 已完成；MIT 许可证、第三方 notices、0.1.0 release notes 与安装包内容已定稿；Linux 实机验证待收尾，见 [release-readiness.md](docs/release-readiness.md)。
+
+### P6 — 运行时行为补齐（P0–P5 后续）
+
+目标：根据逐文件对比，补齐原版 Runtime 中仍缺失或只实现了一部分的运行时行为。P6 与 P5-07 发布检查分开，不默认阻塞 0.1 发布。
+
+- P6-01：`ShotQualityEvaluator`，完成 ClearShot 的镜头质量评估路径。已完成。
+- P6-02：Confiner2D/ConfinerOven 的 skeleton、padding、增量烘焙与 oversize window。已完成。
+- P6-03：GroupFraming 与 Confiner2D 的 Body stage/lens cache 兼容。已完成。
+- P6-04：TargetGroup 的 `updateMethod`、每帧缓存和 group transform 写回。已完成。
+- P6-05：`FixedSignal` 与 `ExternalImpulseListener`。已完成。
+- P6-06：Brain/Impulse 的 `IgnoreTimeScale`。已完成。
+
+任务文档：
+
+- [P6-01 Shot Quality Evaluator](docs/tasks/P6-01-shot-quality-evaluator.md)
+- [P6-02 Confiner2D 保真](docs/tasks/P6-02-confiner2d-fidelity.md)
+- [P6-03 GroupFraming + Confiner2D](docs/tasks/P6-03-group-framing-confiner2d.md)
+- [P6-04 TargetGroup 更新语义](docs/tasks/P6-04-target-group-update.md)
+- [P6-05 Impulse helpers](docs/tasks/P6-05-impulse-helpers.md)
+- [P6-06 Time scale](docs/tasks/P6-06-time-scale.md)
+
+详细优先级、依赖、明确延后项和验收基线见 [runtime-parity.md](docs/runtime-parity.md)。
 
 ## 9. 示例计划
 
@@ -327,7 +356,7 @@ API 设计约束：
 - `01_follow`：移动目标、Follow + RotationComposer、阻尼切换。
 - `03_blend`：两个虚拟相机、Brain 混合、Cut/曲线切换。
 
-后续按 P2–P4 增加 FreeLook、ThirdPerson、Noise/Impulse、Deoccluder、GroupFraming、SplineDolly、2D Confiner、ClearShot。
+后续按 P2–P6 增加 FreeLook、ThirdPerson、Noise/Impulse、Deoccluder、GroupFraming、SplineDolly、2D Confiner、ClearShot，以及 P6 的镜头质量、Impulse helper、时间缩放和 2D 保真示例更新。
 
 ## 10. 测试策略
 
@@ -357,7 +386,7 @@ API 设计约束：
 | 风险 | 说明 | 缓解 |
 | --- | --- | --- |
 | 功能量巨大 | 全量运行时约 4–6 人月 | 分阶段；P1 先交付可运行闭环 |
-| 许可证 | 原项目 Unity Companion License 限制在 Unity 相关项目 | 行为规格重写，不复制代码/资源；依赖清单见 [docs/licenses.md](docs/licenses.md)，发布前复核 |
+| 许可证 | 原项目 Unity Companion License 限制在 Unity 相关项目 | CineRig 采用 MIT；行为规格重写，不复制代码/资源；许可证与第三方 notices 见 [LICENSE](LICENSE)、[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)、[docs/licenses.md](docs/licenses.md) |
 | Confiner2D | Clipper + Oven 缓存复杂 | 接口先留好；P4 实现，可选 Clipper2；先保证基本约束 |
 | Spline | Unity Splines 切线/Up/Roll 规则多 | 自定义 BezierSpline + ISpline 接口；示例先自动切线 |
 | 引擎差异 | 坐标系、手性、相机前向、Aspect、物理镜头 | 明确接口契约；提供 Unity/OpenGL 转换工具 |
@@ -371,6 +400,7 @@ API 设计约束：
 - Unity Editor 面板、Handles、SaveDuringPlay、Presets、CM2 升级工具。
 - Unity Timeline Track/Clip、URP/HDRP PostProcessing、Unity Input System、Unity Splines 资产、Unity 2D PixelPerfect 包。
 - 原项目 `Deprecated/` 下的 CM2 兼容组件。
+- `TargetPositionCache`、SoloCamera、`CinemachineDebug`/调试 HUD、UnityEvent helper 组件暂不进入核心；它们要么仅服务 Unity 编辑器/Timeline scrub，要么属于宿主适配层，详见 [docs/runtime-parity.md](docs/runtime-parity.md)。
 - 首版不提供稳定 C ABI；P5 评估结论与后续条件见 [docs/c-api.md](docs/c-api.md)。
 
 ## 13. 任务执行规则

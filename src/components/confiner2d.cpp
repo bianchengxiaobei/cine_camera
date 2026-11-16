@@ -13,6 +13,7 @@ namespace
 {
 
 constexpr float kCornerAngleThreshold = 10.0f;
+constexpr float kMaxComputationTimePerFrameInSeconds = 1.0f / 120.0f;
 
 float vectorAngleDegrees(math::Vec3 a, math::Vec3 b)
 {
@@ -75,11 +76,28 @@ bool Confiner2D::boundingShapeIsBaked() const
 
 bool Confiner2D::bakeBoundingShape(VirtualCamera& vcam, float maxTimeInSeconds)
 {
-    (void)maxTimeInSeconds;
     bool changed = false;
     if (!validateShapeCache(vcam.state().lens.aspect, changed))
         return false;
+    if (shapeCache_.oven.state() == ConfinerOven::BakingState::Baking)
+    {
+        shapeCache_.oven.bakeConfiner(maxTimeInSeconds);
+        if (shapeCache_.oven.state() != ConfinerOven::BakingState::Baking)
+            invalidateLensCache();
+    }
     return boundingShapeIsBaked();
+}
+
+float Confiner2D::bakeProgress() const
+{
+    return shapeCache_.valid ? shapeCache_.oven.bakeProgress() : 0.0f;
+}
+
+ConfinerOven::BakingState Confiner2D::bakingState() const
+{
+    return shapeCache_.valid
+        ? shapeCache_.oven.state()
+        : ConfinerOven::BakingState::Baked;
 }
 
 void Confiner2D::invalidateBoundingShapeCache()
@@ -107,6 +125,35 @@ float Confiner2D::cameraDisplacementDistance(CameraId cameraId) const
 {
     const ExtraState* extra = findExtraState(cameraId);
     return extra == nullptr ? 0.0f : extra->previousDisplacement.length();
+}
+
+std::vector<std::vector<math::Vec2>> Confiner2D::bakedSolutionPaths(
+    CameraId cameraId) const
+{
+    std::vector<std::vector<math::Vec2>> result;
+    if (!shapeCache_.valid)
+        return result;
+    const ExtraState* extra = findExtraState(cameraId);
+    if (extra == nullptr || !extra->bakedSolution.isValid())
+        return result;
+
+    const std::vector<std::vector<math::Vec2>>& paths =
+        extra->bakedSolution.paths();
+    result.reserve(paths.size());
+    for (const std::vector<math::Vec2>& path : paths)
+    {
+        std::vector<math::Vec2> worldPath;
+        worldPath.reserve(path.size());
+        for (const math::Vec2 point : path)
+        {
+            const math::Vec3 world = shapeCache_.deltaBakedToWorld.transformPoint(
+                {point.x, point.y, 0.0f});
+            if (std::isfinite(world.x) && std::isfinite(world.y))
+                worldPath.push_back({world.x, world.y});
+        }
+        result.push_back(std::move(worldPath));
+    }
+    return result;
 }
 
 float Confiner2D::calculateHalfFrustumHeight(
@@ -216,6 +263,15 @@ bool Confiner2D::validateShapeCache(float aspectRatio, bool& changed)
         && std::abs(shapeCache_.aspectRatio - validatedAspect) <= math::Epsilon
         && oversizeMatches(shapeCache_))
     {
+        if (shapeCache_.oven.state() == ConfinerOven::BakingState::Baking)
+        {
+            shapeCache_.oven.bakeConfiner(
+                kMaxComputationTimePerFrameInSeconds);
+            changed =
+                shapeCache_.oven.state() != ConfinerOven::BakingState::Baking;
+            if (changed)
+                invalidateLensCache();
+        }
         calculateDelta();
         if (deltaIsUniform())
             return true;

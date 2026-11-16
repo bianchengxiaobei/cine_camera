@@ -12,7 +12,7 @@ linked only into `examples_common`; they never leak into `cinerig::cinerig`.
 - `06_pan_tilt/`: P2-06 PanTilt slice (controller-driven pan/tilt, reference frames, recenter targets, rotating target).
 - `07_third_person/`: P2-07 ThirdPersonFollow slice (shoulder rig, local damping, obstacle avoidance, rig visualization, moving/rotating target).
 - `08_third_person_aim/`: P2-08 ThirdPersonAim slice (aim raycast, aim marker, noise-cancellation toggle, combined with ThirdPersonFollow).
-- `09_target_group/`: P2-09 TargetGroup slice (weighted members, center/average position, manual/average rotation, bounds and sphere visualization).
+- `09_target_group/`: P2-09 TargetGroup slice (weighted members, center/average position, manual/average rotation, bounds and sphere visualization); P6-04 adds the Fixed/Late update method, per-frame cache, and owner-entity write-back HUD.
 - `10_hard_lock/`: P2-10 HardLockToTarget slice (tool-target lock, lock-error HUD, damping toggle, separate look-at point).
 - `11_hard_look_at/`: P2-11 HardLookAt slice (fixed camera, moving/rotating target, target-local offset marker, aim-error HUD).
 - `12_rotate_with_follow/`: P2-12 RotateWithFollowTarget slice (Follow chase rig, moving/banking target, orientation damping and error HUD).
@@ -20,14 +20,14 @@ linked only into `examples_common`; they never leak into `cinerig::cinerig`.
 - `14_recomposer/`: P2-14 Recomposer slice (interactive tilt/pan/dutch/zoom, relaxed target attachments, tilted composition and HUD).
 - `15_free_look_modifier/`: P2-15 FreeLookModifier slice (OrbitalFollow vertical sweep, eased top/bottom distance, damping, composition, FOV and tilt).
 - `16_follow_zoom/`: P3-01 FollowZoom slice (depth sweep, constant target/gauge ratio, FOV range, damping/width controls).
-- `17_group_framing/`: P3-02 GroupFraming slice (four moving members, weighted bounds, framing/size/lateral modes, orthographic toggle).
+- `17_group_framing/`: P3-02 GroupFraming slice (four moving members, weighted bounds, framing/size/lateral modes, orthographic toggle); P6-03 documents the Confiner2D Body-stage/lens-cache compatibility path.
 - `18_noise/`: P3-03 BasicMultiChannelPerlin slice (position/orientation noise, correction HUD, gains, pivot, freeze, re-seed).
-- `19_impulse/`: P3-04 impulse core slice (propagating shapes, source/listener, auto fire, secondary reaction, wave visualization).
+- `19_impulse/`: P3-04 impulse core slice plus P6-05 helpers (propagating shapes, source/listener, external prop listener, auto fire, secondary reaction, wave visualization).
 - `20_collision_impulse/`: P3-05 collision source slice (wall/trigger contacts, layer/tag filters, direction/mass/speed scaling, wave rings).
 - `21_deoccluder/`: P3-06 Deoccluder slice (sliding occluder, transparent glass, resolution strategies, damping, shot-quality HUD).
 - `22_decollider/`: P3-07 Decollider slice (terrain lift, camera overlap push-out, smoothing/damping, correction HUD).
 - `23_confiner3d/`: P3-08 Confiner3D slice (box/sphere/no volume, edge slowing, displacement HUD).
-- `24_confiner2d/`: P4-02 Confiner2D slice (overview camera, L-room/box/no shape, confined screen footprint, damping/slowing).
+- `24_confiner2d/`: P6-02 Confiner2D slice (overview camera, L-room/box/no shape, incremental bake status, skeleton padding, confined screen footprint, damping/slowing).
 - `25_spline/`: P4-03 spline abstractions slice (smooth closed Bezier spline, knots, arc-length units, tangent/up/right frame).
 - `26_spline_dolly/`: P4-04 SplineDolly slice (nearest-target/manual dolly, spline-local offset, unit/damping controls, overview frustum).
 - `27_spline_cart/`: P4-05 SplineCart slice (entity cart on a closed spline, auto/manual motion, update-method and unit controls).
@@ -35,7 +35,7 @@ linked only into `examples_common`; they never leak into `cinerig::cinerig`.
 - `29_spline_look_at/`: P4-07 SplineDollyLookAtTargets slice (keyed aim targets, per-item easing, target markers and aim frustum).
 - `30_spline_smoother/`: P4-08 SplineSmoother slice (raw versus smoothed path, mirrored tangent handles, knot frames and smoothing toggle).
 - `31_mixing_camera/`: P4-09 MixingCamera slice (three orbiting children, weighted state averaging, child/mixed frustums and weight presets).
-- `32_clear_shot/`: P4-10 ClearShot slice (quality-evaluated shots, wall occlusion, activation timing, deterministic randomization and live HUD).
+- `32_clear_shot/`: P4-10 ClearShot slice with the P6-01 `ShotQualityEvaluator` (quality-evaluated shots, wall occlusion, activation timing, deterministic randomization and live HUD).
 - `33_sequencer/`: P4-11 SequencerCamera slice (three-shot instruction list, per-shot blends/holds, looping, timing controls and live HUD).
 - `34_state_driven/`: P4-12 StateDrivenCamera slice (simulated Idle/Walk/Run/Jump states, four mapped shots, activation rules, pending waits and live HUD).
 - `35_timeline/`: P5-01 timeline track slice (looping clips, overlapping blends, track priority, gameplay fallback, live clip weights and HUD).

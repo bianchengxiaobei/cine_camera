@@ -8,6 +8,18 @@ using namespace cinerig;
 namespace
 {
 
+std::vector<std::vector<math::Vec2>> lRoom()
+{
+    return {{
+        {-11.0f, -7.0f},
+        {11.0f, -7.0f},
+        {11.0f, 7.0f},
+        {0.0f, 7.0f},
+        {0.0f, 0.0f},
+        {-11.0f, 0.0f},
+    }};
+}
+
 std::vector<std::vector<math::Vec2>> square(float halfExtent, bool clockwise = false)
 {
     if (clockwise)
@@ -44,6 +56,102 @@ TEST_CASE("ConfinerOven has a synchronous baked lifecycle", "[unit][confineroven
     oven.bakeConfiner(0.01f);
     REQUIRE(oven.state() == ConfinerOven::BakingState::Baked);
     REQUIRE(oven.getBakedSolution(0.0f).isValid());
+}
+
+TEST_CASE("ConfinerOven bakes incrementally and exposes usable progress",
+    "[unit][confineroven]")
+{
+    ConfinerOven oven(lRoom(), 1.0f, 0.0f, 0.0f);
+    REQUIRE(oven.state() == ConfinerOven::BakingState::Baking);
+    REQUIRE(oven.bakeProgress() == Catch::Approx(0.0f));
+
+    const ConfinerOven::BakedSolution whileBaking = oven.getBakedSolution(1.0f);
+    REQUIRE(whileBaking.isValid());
+    REQUIRE_FALSE(whileBaking.isEmpty());
+
+    oven.bakeConfiner(-1.0f);
+    REQUIRE(oven.state() == ConfinerOven::BakingState::Baking);
+    REQUIRE(oven.bakeProgress() >= 0.0f);
+    REQUIRE(oven.bakeProgress() <= 1.0f);
+
+    int bakeCalls = 0;
+    while (oven.state() == ConfinerOven::BakingState::Baking && bakeCalls < 500)
+    {
+        oven.bakeConfiner(0.01f);
+        ++bakeCalls;
+    }
+
+    REQUIRE(oven.state() == ConfinerOven::BakingState::Baked);
+    REQUIRE(oven.bakeProgress() == Catch::Approx(1.0f));
+    REQUIRE(oven.getBakedSolution(1.0f).isValid());
+}
+
+TEST_CASE("ConfinerOven bake budget does not change the final solution",
+    "[unit][confineroven]")
+{
+    ConfinerOven incremental(lRoom(), 1.0f, 0.0f, 3.0f);
+    ConfinerOven immediate(lRoom(), 1.0f, 0.0f, 3.0f);
+    for (int call = 0;
+         call < 500
+         && incremental.state() == ConfinerOven::BakingState::Baking;
+         ++call)
+    {
+        incremental.bakeConfiner(0.005f);
+    }
+    immediate.bakeConfiner(10.0f);
+
+    REQUIRE(incremental.state() == ConfinerOven::BakingState::Baked);
+    REQUIRE(immediate.state() == ConfinerOven::BakingState::Baked);
+    for (const float height : {5.5f, 8.8f, 10.5f})
+    {
+        const ConfinerOven::BakedSolution a =
+            incremental.getBakedSolution(height);
+        const ConfinerOven::BakedSolution b = immediate.getBakedSolution(height);
+        REQUIRE(a.paths().size() == b.paths().size());
+        for (const math::Vec2 probe : {
+                 math::Vec2{5.0f, 5.0f},
+                 math::Vec2{-10.0f, 6.0f},
+                 math::Vec2{0.0f, -5.0f}})
+        {
+            REQUIRE(math::approximately(
+                a.confinePoint(probe),
+                b.confinePoint(probe),
+                1e-5f));
+        }
+    }
+}
+
+TEST_CASE("ConfinerOven skeleton padding changes oversize solutions",
+    "[unit][confineroven]")
+{
+    ConfinerOven unpadded(lRoom(), 1.0f, 0.0f, 0.0f);
+    ConfinerOven padded(lRoom(), 1.0f, 0.0f, 10.0f);
+    for (int call = 0;
+         call < 500
+         && (unpadded.state() == ConfinerOven::BakingState::Baking
+             || padded.state() == ConfinerOven::BakingState::Baking);
+         ++call)
+    {
+        if (unpadded.state() == ConfinerOven::BakingState::Baking)
+            unpadded.bakeConfiner(0.01f);
+        if (padded.state() == ConfinerOven::BakingState::Baking)
+            padded.bakeConfiner(0.01f);
+    }
+    REQUIRE(unpadded.state() == ConfinerOven::BakingState::Baked);
+    REQUIRE(padded.state() == ConfinerOven::BakingState::Baked);
+
+    const float height = 5.5f;
+    const ConfinerOven::BakedSolution raw = unpadded.getBakedSolution(height);
+    const ConfinerOven::BakedSolution wide = padded.getBakedSolution(height);
+    REQUIRE(raw.isValid());
+    REQUIRE(wide.isValid());
+    REQUIRE_FALSE(raw.isEmpty());
+    REQUIRE_FALSE(wide.isEmpty());
+    REQUIRE((raw.paths().size() > 1 || raw.paths().front().size() > 1));
+
+    const math::Vec2 rawPoint = raw.confinePoint({5.0f, 5.0f});
+    const math::Vec2 widePoint = wide.confinePoint({5.0f, 5.0f});
+    REQUIRE((rawPoint - widePoint).length() > 1e-3f);
 }
 
 TEST_CASE("ConfinerOven confines independently of winding", "[unit][confineroven]")
@@ -110,12 +218,15 @@ TEST_CASE("ConfinerOven collapses oversize frustums to the midpoint", "[unit][co
         REQUIRE(solution.paths().front().size() == 1);
         REQUIRE(math::approximately(solution.paths().front().front(), {0.0f, 0.0f}));
         REQUIRE(math::approximately(solution.confinePoint({100.0f, -50.0f}), {0.0f, 0.0f}));
+        REQUIRE(math::approximately(solution.confinePoint({4.0f, 4.0f}), {0.0f, 0.0f}));
     }
 }
 
 TEST_CASE("ConfinerOven clamps to the maximum window size", "[unit][confineroven]")
 {
     ConfinerOven oven(square(5.0f), 1.0f, 2.0f);
+    REQUIRE(oven.state() == ConfinerOven::BakingState::Baking);
+    REQUIRE(oven.bakeProgress() == Catch::Approx(0.0f));
     const ConfinerOven::BakedSolution solution = oven.getBakedSolution(4.0f);
     REQUIRE(solution.frustumHeight() == Catch::Approx(2.0f));
     REQUIRE(solution.confinePoint({8.0f, 0.0f}).x
@@ -204,5 +315,4 @@ TEST_CASE("ConfinerOven collapses when a hole consumes the eroded region",
     REQUIRE(solution.paths().front().size() == 1);
     REQUIRE(math::approximately(solution.paths().front().front(), {0.0f, 0.0f}));
 }
-
 

@@ -81,6 +81,7 @@ public:
     ImpulseManager& operator=(const ImpulseManager&) = delete;
 
     IEntityWorld& entityWorld() const noexcept { return world_; }
+    bool ignoreTimeScale = false;
     float currentTime() const noexcept;
 
     std::unique_ptr<ImpulseEvent> newImpulseEvent();

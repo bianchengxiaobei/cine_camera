@@ -150,6 +150,7 @@ private:
 
     VirtualCamera* findCamera(CameraId id);
     EntityId updateTargetFor(const VirtualCamera& camera) const;
+    void updateTargetGroups(UpdateClock clock);
     void prepareTracker(UpdateClock clock);
     void update(UpdateClock clock, float deltaTime);
     void prepareBrains(UpdateClock clock);

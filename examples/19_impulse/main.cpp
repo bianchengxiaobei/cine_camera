@@ -146,7 +146,7 @@ int main(int argc, char** argv)
     cinerig::examples::AppOptions appOptions;
     appOptions.visible = !options.hidden;
     appOptions.vsync = options.vsync;
-    cinerig::examples::App app("CineRig P3-04 Impulse", 1280, 720, appOptions);
+    cinerig::examples::App app("CineRig P6-05 Impulse Helpers", 1280, 720, appOptions);
     if (!app.ok())
     {
         std::cerr << app.error() << '\n';
@@ -167,6 +167,13 @@ int main(int argc, char** argv)
     const cinerig::math::Vec3 sourcePosition{0.0f, 1.8f, 0.0f};
     const cinerig::EntityId targetEntity = world.createEntity({
         sourcePosition,
+        cinerig::math::Quat::identity(),
+        cinerig::math::Vec3::one,
+    });
+
+    const cinerig::math::Vec3 propBasePosition{4.2f, 0.75f, -3.0f};
+    const cinerig::EntityId propEntity = world.createEntity({
+        propBasePosition,
         cinerig::math::Quat::identity(),
         cinerig::math::Vec3::one,
     });
@@ -211,6 +218,20 @@ int main(int argc, char** argv)
     listener->reaction.seed = 11u;
     listener->reaction.reSeed();
     camera->addExtension(std::move(ownedListener));
+
+    cinerig::impulse::ExternalImpulseListener externalListener(
+        &cameraSystem.impulseManager());
+    externalListener.targetEntity = propEntity;
+    externalListener.channelMask = 1u;
+    externalListener.gain = 0.45f;
+    externalListener.use2DDistance = false;
+    externalListener.useLocalSpace = true;
+    externalListener.reaction.secondaryNoise = makeReactionProfile();
+    externalListener.reaction.amplitudeGain = 0.35f;
+    externalListener.reaction.frequencyGain = 1.6f;
+    externalListener.reaction.duration = 0.5f;
+    externalListener.reaction.seed = 23u;
+    externalListener.reaction.reSeed();
 
     cinerig::impulse::ImpulseSource source(&cameraSystem.impulseManager());
     source.position = sourcePosition;
@@ -309,6 +330,7 @@ int main(int argc, char** argv)
         if (resetDown && !previousReset)
         {
             cameraSystem.impulseManager().clear();
+            externalListener.reset();
             source.reset();
             applyShape(
                 source.impulseDefinition,
@@ -335,6 +357,7 @@ int main(int argc, char** argv)
         }
 
         cameraSystem.lateUpdate(deltaTime);
+        externalListener.update(deltaTime);
 
         const cinerig::CameraState& state = camera->state();
         const cinerig::math::Vec3 correction =
@@ -380,6 +403,18 @@ int main(int argc, char** argv)
                 cinerig::math::Vec3::one},
             {0.35f, 0.75f, 1.0f});
         app.renderer().drawTargetMarker(sourcePosition, 1.0f, {1.0f, 0.75f, 0.25f});
+        const cinerig::Transform propTransform = world.transform(propEntity);
+        app.renderer().drawMesh(
+            cube,
+            cinerig::Transform{
+                propTransform.position,
+                propTransform.rotation,
+                {0.9f, 0.9f, 0.9f}},
+            {0.96f, 0.48f, 0.24f});
+        app.renderer().drawTargetMarker(
+            propBasePosition,
+            1.1f,
+            {0.96f, 0.48f, 0.24f});
         app.renderer().setLineWidth(2.0f);
         if (waveAge >= 0.0f && waveAge < 1.4f)
         {
@@ -393,7 +428,7 @@ int main(int argc, char** argv)
         app.renderer().endFrame();
 
         app.hud().begin();
-        app.hud().addLine("CineRig P3-04 impulse core");
+        app.hud().addLine("CineRig P6-05 impulse helpers");
         std::ostringstream shapeLine;
         shapeLine << shapeName(source.impulseDefinition.impulseShape)
                   << "  channel " << source.impulseDefinition.impulseChannel
@@ -412,6 +447,12 @@ int main(int argc, char** argv)
         app.hud().addLine(
             "Listener",
             "gain 0.7, camera space, additive, secondary reaction");
+        std::ostringstream propLine;
+        propLine << externalListener.lastPositionOffset().length() << " units, "
+                 << correctionAngleDegrees(externalListener.lastRotationOffset())
+                 << " deg, "
+                 << (externalListener.hasAppliedImpulse() ? "active" : "idle");
+        app.hud().addLine("External prop", propLine.str());
         app.hud().addLine("Auto fire", autoFire ? "on" : "off");
         app.hud().addLine(
             "Controls",

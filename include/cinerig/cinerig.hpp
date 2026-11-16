@@ -17,6 +17,7 @@
 #include <cinerig/core/output_channels.hpp>
 #include <cinerig/core/priority.hpp>
 #include <cinerig/core/screen_composer_settings.hpp>
+#include <cinerig/core/shot_quality.hpp>
 #include <cinerig/core/signal_source.hpp>
 #include <cinerig/core/spline.hpp>
 #include <cinerig/core/spline_auto_dolly.hpp>
@@ -25,6 +26,7 @@
 #include <cinerig/core/tracker.hpp>
 #include <cinerig/camera/camera_component.hpp>
 #include <cinerig/camera/camera_extension.hpp>
+#include <cinerig/camera/camera_lens_cache_invalidator.hpp>
 #include <cinerig/camera/pipeline.hpp>
 #include <cinerig/camera/virtual_camera.hpp>
 #include <cinerig/camera/virtual_camera_manager_base.hpp>
@@ -36,6 +38,7 @@
 #include <cinerig/components/confiner2d.hpp>
 #include <cinerig/components/decollider.hpp>
 #include <cinerig/components/deoccluder.hpp>
+#include <cinerig/components/shot_quality_evaluator.hpp>
 #include <cinerig/components/follow.hpp>
 #include <cinerig/components/spline_cart.hpp>
 #include <cinerig/components/spline_dolly.hpp>
@@ -59,6 +62,8 @@
 #include <cinerig/components/position_composer.hpp>
 #include <cinerig/components/rotation_composer.hpp>
 #include <cinerig/impulse/collision_impulse_source.hpp>
+#include <cinerig/impulse/external_impulse_listener.hpp>
+#include <cinerig/impulse/fixed_signal.hpp>
 #include <cinerig/impulse/impulse_definition.hpp>
 #include <cinerig/impulse/impulse_listener.hpp>
 #include <cinerig/impulse/impulse_manager.hpp>

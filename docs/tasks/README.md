@@ -88,23 +88,44 @@ starts or completes. Do not merge multiple tasks into one document.
 | P5-06 | [Performance benchmarks](P5-06-performance.md) | completed |
 | P5-07 | [Release readiness](P5-07-release-readiness.md) | in_progress |
 
-## P2–P5
+## P6 — Runtime parity follow-up
 
-P2–P5 task documents were created immediately before each phase began, based on
+| Task | Document | Status |
+| --- | --- | --- |
+| P6-01 | [Shot Quality Evaluator](P6-01-shot-quality-evaluator.md) | completed |
+| P6-02 | [Confiner2D fidelity](P6-02-confiner2d-fidelity.md) | completed |
+| P6-03 | [GroupFraming + Confiner2D](P6-03-group-framing-confiner2d.md) | completed |
+| P6-04 | [TargetGroup update semantics](P6-04-target-group-update.md) | completed |
+| P6-05 | [Impulse helpers](P6-05-impulse-helpers.md) | completed |
+| P6-06 | [Time scale semantics](P6-06-time-scale.md) | completed |
+
+The P6 follow-up was created after the post-P5 source-level comparison. See
+[../runtime-parity.md](../runtime-parity.md) for priorities, deferred items, and
+the definition of done. P6 is separate from the P5-07 release-readiness gate.
+
+## P2–P6
+
+P2–P6 task documents were created immediately before each phase began, based on
 the feature matrix in [../feature-matrix.md](../feature-matrix.md). This avoided
 committing to detailed designs before the P0/P1 foundations were validated.
 
 - P2: Tracker, OrbitalFollow, PositionComposer, full RotationComposer, PanTilt,
   ThirdPersonFollow/Aim, InputAxis, InputAxisController, TargetGroup,
   HardLockToTarget/HardLookAt, CameraOffset/Recomposer, and FreeLookModifier.
-- P3: all planned features completed — FollowZoom, GroupFraming,
+- P3: all P3 task documents completed — FollowZoom, GroupFraming,
   BasicMultiChannelPerlin, impulse core/collision, Deoccluder, Decollider, and
-  Confiner3D.
-- P4: all planned features completed — ConfinerOven, Confiner2D, the spline
+  Confiner3D. The shot-quality evaluator row is covered by P6-01.
+- P4: all P4 task documents completed — ConfinerOven, Confiner2D, the spline
   abstraction layer, SplineDolly, SplineCart, SplineRoll,
   SplineDollyLookAtTargets, SplineSmoother, MixingCamera, ClearShot,
-  SequencerCamera, and StateDrivenCamera.
+  SequencerCamera, and StateDrivenCamera. P6-02 extends the 2D baking behavior;
+  P6-03 adds framing integration; P6-04 adds target-group update/write-back;
+  P6-05 adds reusable impulse helpers; P6-06 adds Brain and impulse
+  scaled/unscaled time selection.
 - P5: timeline, post-processing/focus, storyboard, pixel-perfect, parity, and
   performance benchmarks completed. Release readiness is in progress: Windows
-  and ASan verification are complete; Linux validation and license review remain
-  release blockers.
+  and ASan verification are complete; the MIT license, third-party notices,
+  release notes, and package contents are finalized. Linux validation remains
+  the release blocker.
+- P6: post-P5 runtime parity follow-up is complete; P6-01 through P6-06 are
+  complete. These tasks are separate from the release gate.

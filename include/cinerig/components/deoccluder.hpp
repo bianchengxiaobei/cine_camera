@@ -3,12 +3,13 @@
 #include <unordered_map>
 
 #include <cinerig/camera/camera_extension.hpp>
+#include <cinerig/core/shot_quality.hpp>
 #include <cinerig/engine/physics_world.hpp>
 
 namespace cinerig
 {
 
-class Deoccluder : public CameraExtension
+class Deoccluder : public CameraExtension, public IShotQualityEvaluator
 {
 public:
     struct FollowTargetSettings

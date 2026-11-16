@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <cinerig/camera/camera_extension.hpp>
+#include <cinerig/camera/camera_lens_cache_invalidator.hpp>
 #include <cinerig/components/confiner_oven.hpp>
 #include <cinerig/core/lens_settings.hpp>
 #include <cinerig/math/matrix.hpp>
@@ -11,7 +12,7 @@
 namespace cinerig
 {
 
-class Confiner2D : public CameraExtension
+class Confiner2D : public CameraExtension, public ICameraLensCacheInvalidator
 {
 public:
     struct OversizeWindowSettings
@@ -34,12 +35,16 @@ public:
     bool isValid() const noexcept { return !boundingShape.empty(); }
     bool boundingShapeIsBaked() const;
     bool bakeBoundingShape(VirtualCamera& vcam, float maxTimeInSeconds);
+    float bakeProgress() const;
+    ConfinerOven::BakingState bakingState() const;
 
     void invalidateBoundingShapeCache();
-    void invalidateLensCache();
+    void invalidateLensCache() override;
 
     bool cameraWasDisplaced(CameraId cameraId) const;
     float cameraDisplacementDistance(CameraId cameraId) const;
+    std::vector<std::vector<math::Vec2>> bakedSolutionPaths(
+        CameraId cameraId) const;
 
     static float calculateHalfFrustumHeight(
         const LensSettings& lens,

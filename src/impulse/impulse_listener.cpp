@@ -39,6 +39,14 @@ void ImpulseListener::ImpulseReaction::reSeed()
     seed = state;
 }
 
+void ImpulseListener::ImpulseReaction::reset()
+{
+    currentAmount_ = 0.0f;
+    currentTime_ = 0.0f;
+    currentDamping_ = 0.0f;
+    initialized_ = false;
+}
+
 bool ImpulseListener::ImpulseReaction::getReaction(
     float currentTime,
     float deltaTime,

@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.24)
 
 project(CineRig VERSION 0.1.0 LANGUAGES CXX)
 
@@ -49,6 +49,7 @@ add_library(cinerig STATIC
     src/components/auto_focus.cpp
     src/components/basic_multi_channel_perlin.cpp
     src/components/deoccluder.cpp
+    src/components/shot_quality_evaluator.cpp
     src/components/decollider.cpp
     src/components/confiner3d.cpp
     src/components/confiner_oven.cpp
@@ -77,6 +78,8 @@ add_library(cinerig STATIC
     src/components/rotation_composer.cpp
     src/impulse/impulse_manager.cpp
     src/impulse/impulse_definition.cpp
+    src/impulse/fixed_signal.cpp
+    src/impulse/external_impulse_listener.cpp
     src/impulse/impulse_source.cpp
     src/impulse/collision_impulse_source.cpp
     src/impulse/impulse_listener.cpp
@@ -165,22 +168,11 @@ install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/CineRigConfigVersion.cmake
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/CineRig
 )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+install(FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE
+    ${CMAKE_CURRENT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md
+    ${CMAKE_CURRENT_SOURCE_DIR}/CHANGELOG.md
+    ${CMAKE_CURRENT_SOURCE_DIR}/README.md
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/CineRig
+)
 

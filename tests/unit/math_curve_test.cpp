@@ -47,3 +47,14 @@ TEST_CASE("Curve result is clamped to unit range", "[unit][math]")
     REQUIRE(curve.evaluate(1.0f) == Catch::Approx(1.0f));
     REQUIRE(curve.evaluate(0.5f) == Catch::Approx(0.5f));
 }
+
+TEST_CASE("Raw curve evaluation supports arbitrary times and values", "[unit][math]")
+{
+    const Curve curve({{2.0f, 3.0f, 0.0f, 0.0f}, {4.0f, 7.0f, 0.0f, 0.0f}});
+    REQUIRE(curve.evaluateUnclamped(1.0f) == Catch::Approx(3.0f));
+    REQUIRE(curve.evaluateUnclamped(3.0f) == Catch::Approx(5.0f));
+    REQUIRE(curve.evaluateUnclamped(5.0f) == Catch::Approx(7.0f));
+
+    REQUIRE(curve.evaluate(1.0f) == Catch::Approx(1.0f));
+    REQUIRE(curve.evaluate(3.0f) == Catch::Approx(1.0f));
+}

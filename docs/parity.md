@@ -42,6 +42,26 @@ The `tests/parity` target currently has 18 test cases and 229 assertions.
 | `Tests/Editor/SamplesTests.cs`, `UpgradeCm2ToCm3Tests.cs`, editor utility tests | Unity Editor, assets, and prefabs | Excluded |
 | `CmCameraProceduralBehaviourCacheTests.cs`, editor cache tests | Editor pipeline cache behavior | Not applicable; CineRig rebuilds state explicitly |
 
+## Post-P5 Runtime Parity Follow-Up
+
+The reference suite inventory above covers the P0-P5 parity suite. The
+source-level comparison after P5 identified additional runtime behaviors that
+are tracked as P6 tasks:
+
+| Gap | Reference coverage | Task |
+| --- | --- | --- |
+| Standalone shot-quality evaluator | Covered by `shot_quality_evaluator_test.cpp` and `clear_shot_quality_test.cpp`; ClearShot example uses the standalone evaluator | [P6-01](tasks/P6-01-shot-quality-evaluator.md) (completed) |
+| ConfinerOven skeleton/padding and incremental bake | Covered by incremental lifecycle, budget-independence, skeleton-padding, oversize bake, and cache-invalidation tests | [P6-02](tasks/P6-02-confiner2d-fidelity.md) (completed) |
+| GroupFraming + Confiner2D compatibility | Covered by GroupFraming Body-stage, invalidation, cache-reset, and combined after-Aim-body scenario tests | [P6-03](tasks/P6-03-group-framing-confiner2d.md) (completed) |
+| TargetGroup update method and write-back | Covered by clock-gated updates, lazy accessors, cache invalidation, writable/read-only owner, and CameraSystem drive tests | [P6-04](tasks/P6-04-target-group-update.md) (completed) |
+| Fixed signal and external impulse listener | Covered by authored-curve duration/value tests, raw curve evaluation, external channel/gain/2D/local-space/reaction tests, unapply/read-only/reset cases, and the `19_impulse` prop | [P6-05](tasks/P6-05-impulse-helpers.md) (completed) |
+| Brain/impulse ignore-time-scale | Covered by default/overridden world hooks, scaled/unscaled blend progression, fixed-clock selection, override precedence, impulse expiration/propagation/reaction, and independent-clock scenario tests | [P6-06](tasks/P6-06-time-scale.md) (completed) |
+
+`TargetPositionCache`, SoloCamera, debug visualization, and Unity helper
+components are deferred or adapter-layer work. See
+[runtime-parity.md](runtime-parity.md) for the rationale and revisit
+conditions.
+
 ## Behavioral Fixes From Parity Work
 
 The parity cases exposed two blend-stack differences from the reference

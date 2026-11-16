@@ -3,6 +3,7 @@
 #include <unordered_map>
 
 #include <cinerig/camera/camera_extension.hpp>
+#include <cinerig/camera/camera_lens_cache_invalidator.hpp>
 #include <cinerig/core/camera_state.hpp>
 #include <cinerig/math/geometry.hpp>
 #include <cinerig/math/vec.hpp>
@@ -77,12 +78,20 @@ private:
         math::Vec2 rotationAdjustment{};
         float fovAdjustment = 0.0f;
         int bodyCallsThisFrame = 0;
+        ICameraLensCacheInvalidator* lensCacheInvalidator = nullptr;
+        float previousOrthoSize = 0.0f;
+        Stage framingStage = Stage::Aim;
+        bool initialized = false;
 
         void reset()
         {
             positionAdjustment = {};
             rotationAdjustment = {};
             fovAdjustment = 0.0f;
+            lensCacheInvalidator = nullptr;
+            previousOrthoSize = 0.0f;
+            framingStage = Stage::Aim;
+            initialized = false;
         }
     };
 

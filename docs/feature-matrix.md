@@ -9,45 +9,46 @@ Status values: `planned`, `in-progress`, `done`, `excluded`.
 
 | Feature | Cinemachine source | CineRig target | Phase | Status |
 | --- | --- | --- | --- | --- |
-| Camera state | `Runtime/Core/CameraState.cs` | `core::CameraState` | P0 | planned |
-| Lens settings | `Runtime/Core/LensSettings.cs` | `core::LensSettings` | P0 | planned |
+| Camera state | `Runtime/Core/CameraState.cs` | `core::CameraState` | P0 | done |
+| Lens settings | `Runtime/Core/LensSettings.cs` | `core::LensSettings` | P0 | done |
 | Screen composition | `Runtime/Core/ScreenComposerSettings.cs` | `core::ScreenComposerSettings` | P0 | done |
 | Lookahead settings | `Runtime/Core/LookaheadSettings.cs` | `core::LookaheadSettings` | P0 | done |
 | Noise profile | `Runtime/Core/NoiseSettings.cs` | `core::NoiseProfile` | P0 | done |
-| Priority | `Runtime/Core/PrioritySettings.cs` | `core::PrioritySettings` | P0 | planned |
-| Output channels | `Runtime/Core/OutputChannel.cs` | `core::OutputChannels` | P0 | planned |
-| State blending | `Runtime/Core/CameraState.cs` | `core::CameraState::lerp` | P0 | planned |
-| Blend definition | `Runtime/Core/CinemachineBlend.cs` | `core::BlendDefinition`, `core::Blend` | P0 | planned |
-| Camera interface | `Runtime/Core/ICinemachineCamera.cs` | `core::ICinemachineCamera` | P0 | planned |
-| Damping | `Runtime/Core/Predictor.cs` | `math::Damper` | P0 | planned |
-| Position prediction | `Runtime/Core/Predictor.cs` | `math::PositionPredictor` | P0 | planned |
+| Priority | `Runtime/Core/PrioritySettings.cs` | `core::PrioritySettings` | P0 | done |
+| Output channels | `Runtime/Core/OutputChannel.cs` | `core::OutputChannels` | P0 | done |
+| State blending | `Runtime/Core/CameraState.cs` | `core::CameraState::lerp` | P0 | done |
+| Blend definition | `Runtime/Core/CinemachineBlend.cs` | `core::BlendDefinition`, `core::Blend` | P0 | done |
+| Camera interface | `Runtime/Core/ICinemachineCamera.cs` | `core::ICinemachineCamera` | P0 | done |
+| Damping | `Runtime/Core/Predictor.cs` | `math::Damper` | P0 | done |
+| Position prediction | `Runtime/Core/Predictor.cs` | `math::PositionPredictor` | P0 | done |
 | Target tracking | `Runtime/Core/TargetTracking.cs` | `core::Tracker`, `BindingMode` | P2 | done |
 
 ## Runtime
 
 | Feature | Cinemachine source | CineRig target | Phase | Status |
 | --- | --- | --- | --- | --- |
-| Camera system | `Runtime/Core/CinemachineCore.cs` | `runtime::CameraSystem` | P1 | planned |
-| Active camera registry | `Runtime/Core/VirtualCameraRegistry.cs` | `runtime::VirtualCameraRegistry` | P1 | planned |
-| Update manager | `Runtime/Core/CameraUpdateManager.cs` | `runtime::UpdateManager` | P1 | planned |
-| Update tracker | `Runtime/Core/UpdateTracker.cs` | `runtime::UpdateTracker` | P1 | planned |
+| Camera system | `Runtime/Core/CinemachineCore.cs` | `runtime::CameraSystem` | P1 | done |
+| Active camera registry | `Runtime/Core/VirtualCameraRegistry.cs` | `runtime::VirtualCameraRegistry` | P1 | done |
+| Update manager | `Runtime/Core/CameraUpdateManager.cs` | `runtime::UpdateManager` | P1 | done |
+| Update tracker | `Runtime/Core/UpdateTracker.cs` | `runtime::UpdateTracker` | P1 | done |
 | Target position cache | `Runtime/Core/TargetPositionCache.cs` | `runtime::TargetPositionCache`（运行时路径） | P1 | planned |
-| Virtual camera base | `Runtime/Core/CinemachineVirtualCameraBase.cs` | `camera::VirtualCamera` | P1 | planned |
-| Component base | `Runtime/Core/CinemachineComponentBase.cs` | `camera::CameraComponent` | P1 | planned |
-| Extension base | `Runtime/Core/CinemachineExtension.cs` | `camera::CameraExtension` | P1 | planned |
-| Pipeline | `Runtime/Behaviours/CinemachineCamera.cs` | `camera::Pipeline` | P1 | planned |
+| Virtual camera base | `Runtime/Core/CinemachineVirtualCameraBase.cs` | `camera::VirtualCamera` | P1 | done |
+| Component base | `Runtime/Core/CinemachineComponentBase.cs` | `camera::CameraComponent` | P1 | done |
+| Extension base | `Runtime/Core/CinemachineExtension.cs` | `camera::CameraExtension` | P1 | done |
+| Pipeline | `Runtime/Behaviours/CinemachineCamera.cs` | `camera::Pipeline` | P1 | done |
 
 ## Brain and blending
 
 | Feature | Cinemachine source | CineRig target | Phase | Status |
 | --- | --- | --- | --- | --- |
-| Brain | `Runtime/Behaviours/CinemachineBrain.cs` | `brain::CameraBrain` | P1 | planned |
-| Blend manager | `Runtime/Core/BlendManager.cs` | `brain::BlendManager` | P1 | planned |
-| Override stack | `Runtime/Core/CameraBlendStack.cs` | `brain::CameraBlendStack` | P1 | planned |
-| Custom blend rules | `Runtime/Core/CinemachineBlenderSettings.cs` | `brain::BlendLookup` | P1 | planned |
-| Brain events | `Runtime/Core/CinemachineCore.cs` | `brain::BrainEvents` | P1 | planned |
-| External camera | `Runtime/Behaviours/CinemachineExternalCamera.cs` | `camera::ExternalCamera` | P1 | planned |
-| Manager base | `Runtime/Core/CinemachineCameraManagerBase.cs` | `camera::VirtualCameraManagerBase` | P1 | planned |
+| Brain | `Runtime/Behaviours/CinemachineBrain.cs` | `brain::CameraBrain` | P1 | done |
+| Blend manager | `Runtime/Core/BlendManager.cs` | `brain::BlendManager` | P1 | done |
+| Override stack | `Runtime/Core/CameraBlendStack.cs` | `brain::CameraBlendStack` | P1 | done |
+| Custom blend rules | `Runtime/Core/CinemachineBlenderSettings.cs` | `brain::BlendLookup` | P1 | done |
+| Brain events | `Runtime/Core/CinemachineCore.cs` | `brain::BrainEvents` | P1 | done |
+| External camera | `Runtime/Behaviours/CinemachineExternalCamera.cs` | `camera::ExternalCamera` | P1 | done |
+| Manager base | `Runtime/Core/CinemachineCameraManagerBase.cs` | `camera::VirtualCameraManagerBase` | P1 | done |
+| Brain ignore time scale | `Runtime/Behaviours/CinemachineBrain.cs` | `BrainConfig::ignoreTimeScale` + `IEntityWorld` unscaled hooks | P6 | done |
 
 ## 3D procedural cameras
 
@@ -75,7 +76,9 @@ Status values: `planned`, `in-progress`, `done`, `excluded`.
 | Input axis | `Runtime/Core/InputAxis.cs` | `core::InputAxis` | P2 | done |
 | Input axis controller | `Runtime/Core/InputAxisControllerBase.cs` | `core::InputAxisController` | P2 | done |
 | Target group | `Runtime/Behaviours/CinemachineTargetGroup.cs` | `targets::TargetGroup` | P2 | done |
+| Target group update/write-back | `Runtime/Behaviours/CinemachineTargetGroup.cs` | `targets::TargetGroup::update()` | P6 | done |
 | Group framing | `Runtime/Behaviours/CinemachineGroupFraming.cs` | `targets::GroupFraming` | P3 | done |
+| Group framing + Confiner2D | `Runtime/Behaviours/CinemachineGroupFraming.cs` | `ICameraLensCacheInvalidator` integration | P6 | done |
 
 ## Noise, impulse, collision
 
@@ -84,21 +87,26 @@ Status values: `planned`, `in-progress`, `done`, `excluded`.
 | Perlin noise | `Runtime/Components/CinemachineBasicMultiChannelPerlin.cs` | `components::BasicMultiChannelPerlin` | P3 | done |
 | Gaussian filter | `Runtime/Core/GaussianFilter.cs` | `math::GaussianWindow1D` | P0 | done |
 | Impulse manager | `Runtime/Impulse/CinemachineImpulseManager.cs` | `impulse::ImpulseManager` | P3 | done |
+| Impulse ignore time scale | `Runtime/Impulse/CinemachineImpulseManager.cs` | `impulse::ImpulseManager::ignoreTimeScale` | P6 | done |
 | Impulse definition | `Runtime/Impulse/CinemachineImpulseDefinition.cs` | `impulse::ImpulseDefinition` | P3 | done |
 | Impulse source | `Runtime/Impulse/CinemachineImpulseSource.cs` | `impulse::ImpulseSource` | P3 | done |
+| Fixed signal source | `Runtime/Impulse/CinemachineFixedSignal.cs` | `impulse::FixedSignal` | P6 | done |
 | Impulse listener | `Runtime/Impulse/CinemachineImpulseListener.cs` | `impulse::ImpulseListener` | P3 | done |
+| External impulse listener | `Runtime/Impulse/CinemachinExternalImpulseListener.cs` | `impulse::ExternalImpulseListener` | P6 | done |
 | Collision impulse source | `Runtime/Impulse/CinemachineCollisionImpulseSource.cs` | `impulse::CollisionImpulseSource` | P3 | done |
 | Impulse filtering | `Runtime/Impulse/CinemachineImpulseListener.cs` | `impulse::ImpulseListener` combination modes | P3 | done |
 | Deoccluder | `Runtime/Behaviours/CinemachineDeoccluder.cs` | `components::Deoccluder` | P3 | done |
 | Decollider | `Runtime/Behaviours/CinemachineDecollider.cs` | `components::Decollider` | P3 | done |
 | Confiner 3D | `Runtime/Behaviours/CinemachineConfiner3D.cs` | `components::Confiner3D` | P3 | done |
-| Shot quality evaluator | `Runtime/Behaviours/CinemachineShotQualityEvaluator.cs` | `components::ShotQualityEvaluator` | P3 | planned |
+| Shot quality marker | `Runtime/Core/IShotQualityEvaluator.cs` | `core::IShotQualityEvaluator` | P6 | done |
+| Shot quality evaluator | `Runtime/Behaviours/CinemachineShotQualityEvaluator.cs` | `components::ShotQualityEvaluator` | P6 | done |
 
 ## 2D, splines, managers
 
 | Feature | Cinemachine source | CineRig target | Phase | Status |
 | --- | --- | --- | --- | --- |
 | Confiner 2D | `Runtime/Behaviours/CinemachineConfiner2D.cs` | `components::Confiner2D` | P4 | done |
+| Confiner 2D skeleton/padding | `Runtime/Core/ConfinerOven.cs` | `ConfinerOven` incremental skeleton/padding | P6 | done |
 | Confiner oven | `Runtime/Core/ConfinerOven.cs` | `components::ConfinerOven` | P4 | done |
 | Spline abstractions | `Runtime/Core/SplineSettings.cs`, `SplineHelpers.cs` | `engine::ISpline`, `core::BezierSpline`, `core::SplineHelpers`, `core::SplineSettings` | P4 | done |
 | Spline dolly | `Runtime/Components/CinemachineSplineDolly.cs`, `Runtime/Core/SplineAutoDolly.cs` | `components::SplineDolly`, `core::SplineAutoDolly` | P4 | done |
@@ -124,6 +132,24 @@ Status values: `planned`, `in-progress`, `done`, `excluded`.
 | CM2 deprecated | `Runtime/Deprecated/*` | none | - | excluded |
 | Unity Input System | package integration | `engine::IInputSource` | P5 | adapter only |
 | Unity Splines asset | package integration | `engine::ISpline` | P4 | adapter only |
+| Solo camera / debug HUD | `Runtime/Core/CinemachineCore.cs`, `Runtime/Debug/*` | none | - | excluded |
+| Unity helper components | `Runtime/Helpers/*` | host adapters | - | adapter only |
+
+## P6 Runtime Parity Follow-Up
+
+| Task | Scope | Status |
+| --- | --- | --- |
+| [P6-01](tasks/P6-01-shot-quality-evaluator.md) | Shot quality evaluator | done |
+| [P6-02](tasks/P6-02-confiner2d-fidelity.md) | Confiner2D/ConfinerOven skeleton, padding, bake budget | done |
+| [P6-03](tasks/P6-03-group-framing-confiner2d.md) | GroupFraming + Confiner2D lens-cache compatibility | done |
+| [P6-04](tasks/P6-04-target-group-update.md) | TargetGroup update method, cache, transform write-back | done |
+| [P6-05](tasks/P6-05-impulse-helpers.md) | Fixed signal source and external impulse listener | done |
+| [P6-06](tasks/P6-06-time-scale.md) | Brain and impulse ignore-time-scale semantics | done |
+
+`TargetPositionCache` is deferred: it is only needed for editor Timeline
+scrub/playback, not for the current runtime camera path. See
+[runtime-parity.md](runtime-parity.md) for deferred items and the recommended
+order.
 
 ## Notes
 
@@ -149,7 +175,9 @@ Status values: `planned`, `in-progress`, `done`, `excluded`.
   displacement reporting, and shot quality. P3-07 completed Decollider terrain
   resolution, camera-overlap push-out, distance smoothing, and damping.
   P3-08 completed Confiner3D closest-point containment, slowing, displacement
-  reporting, and target-warp handling. All planned P3 features are implemented.
+  reporting, and target-warp handling.   P3 feature work is complete; P6-01
+  through P6-06 add the shot-quality, 2D-confiner, framing-compatibility,
+  target-group update/write-back, impulse-helper, and time-scale follow-ups.
   P4-01 completed ConfinerOven's aspect-aware baking, winding-independent
   erosion, holes, maximum windows, and midpoint oversize fallback. P4-02
   completed Confiner2D shape caches, frustum shrinking, slowing, damping,
@@ -187,12 +215,26 @@ Status values: `planned`, `in-progress`, `done`, `excluded`.
   snapshots, and body-component final positions; see
   [parity.md](parity.md). P5-06 completed the performance suite, removed
   steady-state allocations from the camera update path, and added release
-  frame-time budgets; see [performance.md](performance.md). All planned camera
-  feature work is complete; release readiness is tracked separately.
+  frame-time budgets; see [performance.md](performance.md). All planned P0-P5
+  camera feature work is complete; the P6 runtime parity follow-up is tracked
+  separately in [runtime-parity.md](runtime-parity.md), and release readiness
+  remains in [release-readiness.md](release-readiness.md).
+- P6-01 completed the standalone `ShotQualityEvaluator`, the
+  `IShotQualityEvaluator` marker, ClearShot scenario coverage, and the
+  `32_clear_shot` integration. P6-02 completed incremental ConfinerOven baking,
+  normalized skeleton padding, oversize-window padding, and bake progress/status.
+  P6-03 completed GroupFraming's Confiner2D Body-stage compatibility and
+  orthographic lens-cache invalidation. P6-04 completed TargetGroup's
+  clock-gated cache and owner-transform write-back. P6-05 completed raw curve
+  evaluation, the authored `FixedSignal`, and the host-driven
+  `ExternalImpulseListener`. P6-06 completed the world unscaled hooks, Brain
+  effective-delta selection, fixed-clock unscaled delta, and impulse unscaled
+  time.
 - A stable C ABI is not part of 0.1; the C++20 API and integration path are the
   supported release surface. See [c-api.md](c-api.md).
 - Windows Debug/Release, performance, AddressSanitizer, and installed-package
-  verification are complete. Linux validation and license review remain release
-  blockers; see [release-readiness.md](release-readiness.md).
+  verification are complete. The MIT license, third-party notices, release
+  notes, and package contents are finalized. Linux validation remains the
+  release blocker; see [release-readiness.md](release-readiness.md).
 - Engine-specific integrations are adapters, not core features. The core library
   must remain buildable without SDL, OpenGL, Unity, or Clipper2.

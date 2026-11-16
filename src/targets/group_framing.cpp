@@ -30,6 +30,22 @@ float safeAspect(float aspect)
     return aspect > math::Epsilon ? aspect : 1.0f;
 }
 
+ICameraLensCacheInvalidator* findLensCacheInvalidator(VirtualCamera& vcam)
+{
+    for (std::size_t index = 0; index < vcam.extensionCount(); ++index)
+    {
+        CameraExtension* extension = vcam.extension(index);
+        if (extension == nullptr || !extension->isEnabled())
+            continue;
+        if (auto* invalidator =
+                dynamic_cast<ICameraLensCacheInvalidator*>(extension))
+        {
+            return invalidator;
+        }
+    }
+    return nullptr;
+}
+
 } // namespace
 
 void GroupFraming::validate()
@@ -71,13 +87,30 @@ void GroupFraming::postPipelineStageCallback(
 {
     CameraCache& cache = caches_[&vcam];
     const CameraComponent* body = vcam.component(Stage::Body);
-    const bool applyOnBody = body != nullptr && body->bodyAppliesAfterAim();
-    const Stage framingStage = applyOnBody ? Stage::Body : Stage::Aim;
-    if (stage != framingStage)
+    const bool bodyAppliesAfterAim =
+        body != nullptr && body->bodyAppliesAfterAim();
+
+    if (!vcam.previousStateIsValid || !cache.initialized)
+    {
+        cache.reset();
+        cache.lensCacheInvalidator = findLensCacheInvalidator(vcam);
+        cache.framingStage =
+            cache.lensCacheInvalidator != nullptr || bodyAppliesAfterAim
+            ? Stage::Body
+            : Stage::Aim;
+        cache.previousOrthoSize = state.lens.orthographicSize;
+        cache.initialized = true;
+    }
+
+    if (stage != cache.framingStage)
         return;
 
-    if (applyOnBody && cache.bodyCallsThisFrame++ == 0)
+    if (bodyAppliesAfterAim
+        && cache.framingStage == Stage::Body
+        && cache.bodyCallsThisFrame++ == 0)
+    {
         return;
+    }
 
     const TargetGroup* group = dynamic_cast<const TargetGroup*>(
         vcam.lookAtTargetAsGroup());
@@ -86,13 +119,18 @@ void GroupFraming::postPipelineStageCallback(
     if (group == nullptr || group->isEmpty())
         return;
 
-    if (!vcam.previousStateIsValid)
-        cache.reset();
-
     if (isOrthographic(state.lens))
         orthoFraming(vcam, *group, cache, state, deltaTime);
     else
         perspectiveFraming(vcam, *group, cache, state, deltaTime);
+
+    if (cache.lensCacheInvalidator != nullptr
+        && std::abs(cache.previousOrthoSize - state.lens.orthographicSize)
+            > math::Epsilon)
+    {
+        cache.lensCacheInvalidator->invalidateLensCache();
+        cache.previousOrthoSize = state.lens.orthographicSize;
+    }
 }
 
 float GroupFraming::frameHeight(math::Vec2 boundsSize, float aspect) const

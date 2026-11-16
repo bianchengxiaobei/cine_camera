@@ -155,13 +155,20 @@ int main(int argc, char** argv)
         deoccluder->reset();
         deoccluder->ignoreEntity = targetEntity;
         deoccluder->avoidObstacles.enabled = false;
-        deoccluder->qualityEvaluation.enabled = true;
-        deoccluder->qualityEvaluation.optimalDistance = 6.0f;
-        deoccluder->qualityEvaluation.nearLimit = 1.0f;
-        deoccluder->qualityEvaluation.farLimit = 12.0f;
-        deoccluder->qualityEvaluation.maxQualityBoost = 0.2f;
+        deoccluder->qualityEvaluation.enabled = false;
         deoccluder->validate();
         camera->addExtension(std::move(deoccluder));
+
+        auto shotQuality = std::make_unique<cinerig::ShotQualityEvaluator>();
+        shotQuality->reset();
+        shotQuality->ignoreEntity = targetEntity;
+        shotQuality->distanceEvaluation.enabled = true;
+        shotQuality->distanceEvaluation.optimalDistance = 6.0f;
+        shotQuality->distanceEvaluation.nearLimit = 1.0f;
+        shotQuality->distanceEvaluation.farLimit = 12.0f;
+        shotQuality->distanceEvaluation.maxQualityBoost = 0.2f;
+        shotQuality->validate();
+        camera->addExtension(std::move(shotQuality));
 
         if (!manager->addChild(*camera))
         {

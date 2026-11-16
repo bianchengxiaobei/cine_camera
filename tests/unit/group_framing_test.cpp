@@ -7,6 +7,8 @@
 #include <memory>
 
 #include <cinerig/camera/camera_component.hpp>
+#include <cinerig/camera/camera_lens_cache_invalidator.hpp>
+#include <cinerig/components/confiner2d.hpp>
 #include <cinerig/runtime/camera_system.hpp>
 #include <cinerig/targets/group_framing.hpp>
 #include <cinerig/targets/target_group.hpp>
@@ -26,8 +28,36 @@ public:
     void mutateCameraState(CameraState& state, float deltaTime) override
     {
         (void)deltaTime;
+        ++mutateCount;
+        seenOrthoSize = state.lens.orthographicSize;
         state.rawPosition.x += 2.0f;
     }
+
+    int mutateCount = 0;
+    float seenOrthoSize = 0.0f;
+};
+
+class AimProbe : public CameraComponent
+{
+public:
+    Stage stage() const override { return Stage::Aim; }
+    bool isValid() const override { return true; }
+    void mutateCameraState(CameraState& state, float deltaTime) override
+    {
+        (void)deltaTime;
+        seenOrthoSize = state.lens.orthographicSize;
+    }
+
+    float seenOrthoSize = 0.0f;
+};
+
+class CountingInvalidator : public CameraExtension,
+                             public ICameraLensCacheInvalidator
+{
+public:
+    void invalidateLensCache() override { ++count; }
+
+    int count = 0;
 };
 
 struct GroupFramingFixture
@@ -293,6 +323,118 @@ TEST_CASE("GroupFraming applies on the correct stage for after-aim bodies", "[un
         state.lens.fieldOfView,
         fovForHeight(3.6f, 9.0f),
         1e-3f));
+}
+
+TEST_CASE("GroupFraming selects Body when Confiner2D is attached", "[unit][group-framing]")
+{
+    GroupFramingFixture fixture;
+    fixture.camera->lens.orthographic = true;
+    fixture.camera->lens.orthographicSize = 10.0f;
+
+    auto confiner = std::make_unique<Confiner2D>();
+    Confiner2D* confinerPtr = confiner.get();
+    fixture.camera->addExtension(std::move(confiner));
+    AimProbe& probe = fixture.camera->setAim<AimProbe>();
+
+    fixture.step();
+    REQUIRE(probe.seenOrthoSize == Catch::Approx(2.0f).margin(1e-4f));
+    REQUIRE(fixture.camera->state().lens.orthographicSize
+        == Catch::Approx(2.0f).margin(1e-4f));
+
+    fixture.camera->removeExtension(confinerPtr);
+    fixture.framing->reset(*fixture.camera);
+    fixture.step();
+    REQUIRE(probe.seenOrthoSize == Catch::Approx(10.0f).margin(1e-4f));
+}
+
+TEST_CASE("GroupFraming ignores disabled lens cache invalidators",
+    "[unit][group-framing]")
+{
+    GroupFramingFixture fixture;
+    fixture.camera->lens.orthographic = true;
+    fixture.camera->lens.orthographicSize = 10.0f;
+
+    auto confiner = std::make_unique<Confiner2D>();
+    confiner->setEnabled(false);
+    fixture.camera->addExtension(std::move(confiner));
+    AimProbe& probe = fixture.camera->setAim<AimProbe>();
+
+    fixture.step();
+    REQUIRE(probe.seenOrthoSize == Catch::Approx(10.0f).margin(1e-4f));
+    REQUIRE(fixture.camera->state().lens.orthographicSize
+        == Catch::Approx(2.0f).margin(1e-4f));
+}
+
+TEST_CASE("GroupFraming invalidates lens cache only when orthographic size changes",
+    "[unit][group-framing]")
+{
+    GroupFramingFixture fixture;
+    fixture.camera->lens.orthographic = true;
+    fixture.camera->lens.orthographicSize = 10.0f;
+
+    auto invalidator = std::make_unique<CountingInvalidator>();
+    CountingInvalidator* invalidatorPtr = invalidator.get();
+    fixture.camera->addExtension(std::move(invalidator));
+
+    fixture.step();
+    REQUIRE(invalidatorPtr->count == 1);
+    REQUIRE(fixture.camera->state().lens.orthographicSize
+        == Catch::Approx(2.0f).margin(1e-4f));
+
+    fixture.step();
+    REQUIRE(invalidatorPtr->count == 1);
+
+    fixture.framing->framingSize = 0.25f;
+    fixture.step();
+    REQUIRE(invalidatorPtr->count == 2);
+    REQUIRE(fixture.camera->state().lens.orthographicSize
+        == Catch::Approx(4.0f).margin(1e-4f));
+}
+
+TEST_CASE("GroupFraming does not invalidate an unchanged orthographic size",
+    "[unit][group-framing]")
+{
+    GroupFramingFixture fixture;
+    fixture.camera->lens.orthographic = true;
+    fixture.camera->lens.orthographicSize = 10.0f;
+    fixture.framing->framingSize = 0.1f;
+
+    auto invalidator = std::make_unique<CountingInvalidator>();
+    CountingInvalidator* invalidatorPtr = invalidator.get();
+    fixture.camera->addExtension(std::move(invalidator));
+
+    fixture.step();
+    fixture.step();
+    REQUIRE(invalidatorPtr->count == 0);
+    REQUIRE(fixture.camera->state().lens.orthographicSize
+        == Catch::Approx(10.0f).margin(1e-4f));
+}
+
+TEST_CASE("GroupFraming cache reset clears the invalidator and previous size",
+    "[unit][group-framing]")
+{
+    GroupFramingFixture fixture;
+    fixture.camera->lens.orthographic = true;
+    fixture.camera->lens.orthographicSize = 10.0f;
+
+    auto invalidator = std::make_unique<CountingInvalidator>();
+    CountingInvalidator* invalidatorPtr = invalidator.get();
+    fixture.camera->addExtension(std::move(invalidator));
+
+    fixture.step();
+    REQUIRE(invalidatorPtr->count == 1);
+
+    fixture.camera->lens.orthographicSize = 3.0f;
+    fixture.framing->reset(*fixture.camera);
+    fixture.step();
+    REQUIRE(invalidatorPtr->count == 2);
+
+    fixture.camera->lens.orthographicSize = 10.0f;
+    fixture.framing->framingSize = 0.25f;
+    invalidatorPtr->setEnabled(false);
+    fixture.framing->reset(*fixture.camera);
+    fixture.step();
+    REQUIRE(invalidatorPtr->count == 2);
 }
 
 

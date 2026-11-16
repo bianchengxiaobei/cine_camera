@@ -34,6 +34,7 @@
     impulse_test.cpp
     collision_impulse_source_test.cpp
     deoccluder_test.cpp
+    shot_quality_evaluator_test.cpp
     decollider_test.cpp
     confiner3d_test.cpp
     confiner_oven_test.cpp

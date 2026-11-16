@@ -44,6 +44,31 @@ TEST_CASE("FixedStep and FakeEntityWorld provide deterministic clocks", "[scenar
     REQUIRE(step.time == 0.0f);
 }
 
+TEST_CASE("FakeEntityWorld unscaled clocks fall back to scaled time", "[scenario][support]")
+{
+    FakeEntityWorld world;
+    world.setDeltaTime(UpdateClock::Fixed, 0.02f);
+    world.setDeltaTime(UpdateClock::Late, 0.016f);
+    world.setTime(9.0f);
+
+    REQUIRE(world.unscaledDeltaTime(UpdateClock::Fixed) == Catch::Approx(0.02f));
+    REQUIRE(world.unscaledDeltaTime(UpdateClock::Late) == Catch::Approx(0.016f));
+    REQUIRE(world.unscaledTime() == Catch::Approx(9.0f));
+
+    world.setUnscaledDeltaTime(UpdateClock::Fixed, 0.01f);
+    world.setUnscaledDeltaTime(UpdateClock::Late, 0.005f);
+    world.setUnscaledTime(21.0f);
+
+    REQUIRE(world.unscaledDeltaTime(UpdateClock::Fixed) == Catch::Approx(0.01f));
+    REQUIRE(world.unscaledDeltaTime(UpdateClock::Late) == Catch::Approx(0.005f));
+    REQUIRE(world.unscaledTime() == Catch::Approx(21.0f));
+
+    world.reset();
+    REQUIRE(world.unscaledDeltaTime(UpdateClock::Fixed) == Catch::Approx(1.0f / 60.0f));
+    REQUIRE(world.unscaledDeltaTime(UpdateClock::Late) == Catch::Approx(1.0f / 60.0f));
+    REQUIRE(world.unscaledTime() == Catch::Approx(0.0f));
+}
+
 TEST_CASE("FakeEntityWorld supports transforms, writability and change clocks", "[scenario][support]")
 {
     FakeEntityWorld world;

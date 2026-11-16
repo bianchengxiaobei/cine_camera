@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include <cinerig/camera/camera_component.hpp>
+#include <cinerig/camera/camera_lens_cache_invalidator.hpp>
 #include <cinerig/core/camera_interface.hpp>
 #include <cinerig/core/camera_state.hpp>
 #include <cinerig/engine/entity_world.hpp>

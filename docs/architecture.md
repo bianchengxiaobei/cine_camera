@@ -11,14 +11,14 @@ examples / tests
       ▼
 cinerig::brain        camera selection, timeline overrides, blending, post-processing dispatch, output application
 cinerig::managers     MixingCamera / ClearShot / Sequencer / StateDriven
-cinerig::components   Follow / OrbitalFollow / PanTilt / ThirdPersonFollow / ThirdPersonAim / HardLockToTarget / HardLookAt / RotateWithFollowTarget / CameraOffset / Recomposer / FreeLookModifier / FollowZoom / Composers / BasicMultiChannelPerlin / Deoccluder / Decollider / Confiner3D / ConfinerOven / Confiner2D / SplineDolly / SplineCart / SplineRoll / SplineDollyLookAtTargets / SplineSmoother / PostProcessing / AutoFocus / StoryboardExtension / PixelPerfectExtension
-cinerig::camera       VirtualCamera / Component / Extension / pipeline
-cinerig::impulse      ImpulseManager / ImpulseDefinition / ImpulseSource / CollisionImpulseSource / ImpulseListener
+cinerig::components   Follow / OrbitalFollow / PanTilt / ThirdPersonFollow / ThirdPersonAim / HardLockToTarget / HardLookAt / RotateWithFollowTarget / CameraOffset / Recomposer / FreeLookModifier / FollowZoom / Composers / BasicMultiChannelPerlin / Deoccluder / ShotQualityEvaluator / Decollider / Confiner3D / ConfinerOven / Confiner2D / SplineDolly / SplineCart / SplineRoll / SplineDollyLookAtTargets / SplineSmoother / PostProcessing / AutoFocus / StoryboardExtension / PixelPerfectExtension
+cinerig::camera       VirtualCamera / Component / Extension / LensCacheInvalidator / pipeline
+cinerig::impulse      ImpulseManager / ImpulseDefinition / ImpulseSource / FixedSignal / CollisionImpulseSource / ImpulseListener / ExternalImpulseListener
 cinerig::targets      TargetGroup (implementation) / GroupFraming
       │
       ▼
 cinerig::runtime      CameraSystem / Registry / UpdateManager / UpdateTracker
-cinerig::core         CameraState / Lens / Blend / Priority / Target / InputAxis / ModifierInterfaces / SplineSettings / SplineAutoDolly / BezierSpline
+cinerig::core         CameraState / Lens / Blend / Priority / Target / InputAxis / ModifierInterfaces / ShotQuality / SplineSettings / SplineAutoDolly / BezierSpline
 cinerig::math         vectors, quaternions, curves, damping
 cinerig::engine       IEntityWorld / ICameraOutput / IPhysicsWorld / ISpline / IPostProcessor / ...
 ```
@@ -43,9 +43,38 @@ cinerig::engine       IEntityWorld / ICameraOutput / IPhysicsWorld / ISpline / I
 - `CameraSystem` owns cameras, brains, target groups, and the impulse manager.
 - Callers interact through stable `uint64_t` handles (`CameraId`, `BrainId`,
   `GroupId`).
-- `IEntityWorld` owns entity transforms; CineRig never owns engine objects.
+- `IEntityWorld` owns entity transforms and time; CineRig never owns engine
+  objects. Adapters may override `unscaledDeltaTime(clock)` and `unscaledTime()`
+  to expose a pause/slow-motion-independent clock; the defaults return scaled
+  time.
 - `ICameraOutput` owns the engine camera; CineRig writes the final state to it.
 - `VirtualCamera` owns its pipeline components and extensions.
+- `Deoccluder` and `ShotQualityEvaluator` implement
+  `IShotQualityEvaluator`; shot quality is written in the Finalize stage and is
+  consumed by manager cameras such as `ClearShot`.
+- `targets::TargetGroup` owns a reusable valid-member cache and a per-frame
+  update guard. `CameraSystem` calls the base `TargetGroup::update(clock)` for
+  every registered group before camera updates; the concrete group selects the
+  Fixed or Late clock and can write its computed transform to an optional owner
+  entity. Accessors refresh lazily for standalone use.
+- `FixedSignal` is a value-style `ISignalSource6D` owned by the host or an
+  `ImpulseEvent`. `ExternalImpulseListener` non-owningly references the manager
+  and its entity world, applies camera-listener-equivalent gain/distance/local
+  space/reaction rules, and writes an entity through `trySetTransform()`. When
+  the entity is read-only, the listener keeps the computed offsets available to
+  the host instead of accumulating them.
+- `ImpulseManager::currentTime()` selects scaled `IEntityWorld::time()` or
+  unscaled `unscaledTime()` per its `ignoreTimeScale` flag. Event start,
+  expiration, propagation, and reaction sample time all use that selection.
+- `Confiner2D` owns its shape cache and per-camera baked solutions, and
+  implements `ICameraLensCacheInvalidator`. `GroupFraming` discovers that
+  camera-layer interface through the enabled extension list, selects the Body
+  stage when present, and invalidates the cache when its orthographic size
+  changes. `targets` therefore does not depend on the concrete
+  `components::Confiner2D` header.
+  `ConfinerOven` owns the incremental bake cache, skeleton, and private float
+  polygon operations; it does not own engine colliders or external clipping
+  libraries.
 - `VirtualCameraManagerBase` owns references to its child cameras; it does not
   own their lifetime.
 - `BlendManager` and `CameraBlendStack` own blend state and transient
@@ -56,6 +85,10 @@ cinerig::engine       IEntityWorld / ICameraOutput / IPhysicsWorld / ISpline / I
   cameras. It owns only its persistent override ID.
 - `CameraBrain` non-owningly references an optional `IPostProcessor`. The host
   owns the adapter and any engine profiles referenced by custom blendables.
+  `CameraBrain` resolves the effective delta once per update with the precedence
+  blend-manager override, unscaled world delta when `ignoreTimeScale` is set,
+  then the caller delta. Public `processFrame()` and `updateInternal()` share
+  the same single-application path.
 - `StoryboardExtension` owns its shared settings payload. The payload
   non-owningly references the host image through an opaque shared handle; the
   host overlay adapter uses the layout helper and its native image/texture.
@@ -80,6 +113,11 @@ CameraSystem::fixedUpdate / lateUpdate / manualUpdate
   → optional host overlay adapter renders StoryboardSettings blendables
 ```
 
+Brain blending and impulse time can run on the world unscaled clock while
+virtual-camera components continue to receive the host-supplied scaled delta.
+`CameraBrain` applies its effective blend delta exactly once; the host remains
+responsible for passing the correct per-clock values into `CameraSystem`.
+
 `VirtualCameraRegistry` caches its priority-sorted active list and re-sorts only
 when the priority/activation signature changes or the active set is modified.
 `UpdateManager` copies its level table into reusable scratch storage, and
@@ -88,7 +126,12 @@ does not allocate in optimized builds.
 
 ## Determinism
 
-- All time comes from `IEntityWorld`; no `std::chrono` in the core library.
+- All simulation time comes from `IEntityWorld`; no `std::chrono` is used to
+  advance camera state. Brain and impulse consumers choose between the scaled
+  and unscaled world clocks without introducing a second time source.
+- CPU work budgets, such as ConfinerOven baking, may use a steady clock to
+  decide when to pause work. The budget must not change the final baked geometry
+  for the same inputs.
 - `manualUpdate` must be deterministic for a fixed sequence of inputs.
 - Noise and impulse use explicit seeds, not global random state.
 - The library is single-threaded. An adapter may run multiple `CameraSystem`

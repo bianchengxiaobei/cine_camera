@@ -49,9 +49,13 @@ void CameraBrain::prepareLiveCamera()
 
 void CameraBrain::processFrame(UpdateClock clock, float deltaTime)
 {
+    processFrameInternal(clock, effectiveDeltaTime(clock, deltaTime));
+}
+
+void CameraBrain::processFrameInternal(UpdateClock clock, float effectiveDelta)
+{
     (void)clock;
     const math::Vec3 worldUp = effectiveWorldUp();
-    const float effectiveDelta = effectiveDeltaTime(deltaTime);
 
     if (config_.defaultBlend.style != lastConfigBlend_.style
         || !math::approximately(config_.defaultBlend.time, lastConfigBlend_.time))
@@ -251,7 +255,7 @@ const BrainEvents& CameraBrain::events() const noexcept
 
 void CameraBrain::updateInternal(UpdateClock clock, float deltaTime)
 {
-    const float effectiveDelta = effectiveDeltaTime(deltaTime);
+    const float effectiveDelta = effectiveDeltaTime(clock, deltaTime);
     prepareLiveCamera();
     system_.updateCameras(
         clock,
@@ -259,7 +263,7 @@ void CameraBrain::updateInternal(UpdateClock clock, float deltaTime)
         config_.channelMask,
         effectiveWorldUp(),
         config_.updateMethod == UpdateMethod::Smart);
-    processFrame(clock, effectiveDelta);
+    processFrameInternal(clock, effectiveDelta);
 }
 
 ICinemachineCamera* CameraBrain::topCameraFromPriorityQueue() const
@@ -283,10 +287,14 @@ math::Vec3 CameraBrain::effectiveWorldUp() const
     return config_.useWorldUpOverride ? config_.worldUpOverride : system_.worldUp();
 }
 
-float CameraBrain::effectiveDeltaTime(float deltaTime) const
+float CameraBrain::effectiveDeltaTime(UpdateClock clock, float deltaTime) const
 {
     const float override = blendManager_.deltaTimeOverride();
-    return override > 0.0f ? override : deltaTime;
+    if (override > 0.0f)
+        return override;
+    if (config_.ignoreTimeScale)
+        return system_.entityWorld().unscaledDeltaTime(clock);
+    return deltaTime;
 }
 
 void CameraBrain::applyLensInheritance(CameraState& state) const

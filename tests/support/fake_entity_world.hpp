@@ -21,8 +21,10 @@ public:
     void remove(EntityId id);
 
     void setDeltaTime(UpdateClock clock, float delta);
+    void setUnscaledDeltaTime(UpdateClock clock, float delta);
     void setFrame(UpdateClock clock, std::uint64_t frame);
     void setTime(float time);
+    void setUnscaledTime(float time);
     void setWorldUp(math::Vec3 up);
     void setViewportSize(math::Vec2 size);
     void setLastChangeClock(EntityId id, UpdateClock clock);
@@ -37,6 +39,8 @@ public:
     float deltaTime(UpdateClock clock) const override;
     float fixedDeltaTime() const override;
     float time() const override;
+    float unscaledDeltaTime(UpdateClock clock) const override;
+    float unscaledTime() const override;
     std::uint64_t frame(UpdateClock clock) const override;
     math::Vec3 worldUp() const override;
     math::Vec2 viewportSize() const override;
@@ -49,7 +53,13 @@ private:
     std::unordered_map<EntityId, bool> writable_;
     float fixedDelta_ = 1.0f / 60.0f;
     float lateDelta_ = 1.0f / 60.0f;
+    float unscaledFixedDelta_ = 0.0f;
+    float unscaledLateDelta_ = 0.0f;
     float time_ = 0.0f;
+    float unscaledTime_ = 0.0f;
+    bool hasUnscaledFixedDelta_ = false;
+    bool hasUnscaledLateDelta_ = false;
+    bool hasUnscaledTime_ = false;
     std::uint64_t fixedFrame_ = 0;
     std::uint64_t lateFrame_ = 0;
     math::Vec3 worldUp_ = math::Vec3::up;

@@ -1,6 +1,8 @@
 ﻿#pragma once
 
 #include <cstddef>
+#include <cstdint>
+#include <utility>
 #include <vector>
 
 #include <cinerig/core/camera_target.hpp>
@@ -25,6 +27,12 @@ public:
         GroupAverage,
     };
 
+    enum class GroupUpdateMethod
+    {
+        Fixed,
+        Late,
+    };
+
     struct Member
     {
         EntityId entity = 0;
@@ -36,11 +44,16 @@ public:
 
     explicit TargetGroup(IEntityWorld& world);
 
+    GroupUpdateMethod updateMethod = GroupUpdateMethod::Late;
+    EntityId groupEntity = 0;
+
     PositionMode positionMode = PositionMode::GroupCenter;
     RotationMode rotationMode = RotationMode::Manual;
     math::Vec3 manualPosition{};
     math::Quat manualRotation{};
 
+    void update(UpdateClock clock) override;
+    void doUpdate();
     void addMember(EntityId entity, float weight = 1.0f, float radius = 0.5f);
     bool removeMember(EntityId entity);
     std::size_t findMember(EntityId entity) const;
@@ -70,7 +83,14 @@ public:
         math::Vec2& maxAngles,
         math::Vec2& zRange) const;
 
+    bool writeBackSucceeded() const noexcept { return writeBackSucceeded_; }
+
     const std::vector<Member>& members() const noexcept { return members_; }
+    std::vector<Member>& members() noexcept
+    {
+        dirty_ = true;
+        return members_;
+    }
 
 private:
     struct ValidMember
@@ -83,16 +103,29 @@ private:
         float radius = 0.0f;
     };
 
-    std::vector<ValidMember> validMembers() const;
+    UpdateClock selectedClock() const noexcept;
+    std::uint64_t currentUpdateFrame() const;
+    math::Vec3 fallbackPosition() const;
+    math::Quat fallbackRotation() const;
+    std::pair<math::Vec3, float> weightedMemberBounds(const ValidMember& member) const;
     void refresh() const;
+    void invalidateCache() noexcept { dirty_ = true; }
 
     IEntityWorld& world_;
     std::vector<Member> members_;
+    mutable std::vector<ValidMember> validMembers_;
+    mutable math::Vec3 averagePosition_{};
     mutable math::Vec3 groupPosition_{};
     mutable math::Quat groupRotation_{};
     mutable math::Bounds boundingBox_{};
     mutable math::BoundingSphere boundingSphere_{};
-    mutable bool hasValidMembers_ = false;
+    mutable float weightSum_ = 0.0f;
+    mutable float maxWeight_ = 0.0f;
+    mutable std::uint64_t lastUpdateFrame_ = 0;
+    mutable UpdateClock lastUpdateClock_ = UpdateClock::Late;
+    mutable bool cacheValid_ = false;
+    mutable bool writeBackSucceeded_ = false;
+    bool dirty_ = true;
 };
 
 } // namespace cinerig::targets

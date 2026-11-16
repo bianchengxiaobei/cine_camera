@@ -30,6 +30,7 @@ public:
         math::Vec3 noiseOffsets{};
 
         void reSeed();
+        void reset();
         bool getReaction(
             float currentTime,
             float deltaTime,

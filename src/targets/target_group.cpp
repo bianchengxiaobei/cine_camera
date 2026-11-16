@@ -4,8 +4,6 @@
 #include <cmath>
 #include <utility>
 
-#include <cinerig/math/damp.hpp>
-
 namespace cinerig::targets
 {
 
@@ -14,9 +12,36 @@ TargetGroup::TargetGroup(IEntityWorld& world)
 {
 }
 
+UpdateClock TargetGroup::selectedClock() const noexcept
+{
+    return updateMethod == GroupUpdateMethod::Fixed
+        ? UpdateClock::Fixed
+        : UpdateClock::Late;
+}
+
+std::uint64_t TargetGroup::currentUpdateFrame() const
+{
+    return world_.frame(selectedClock());
+}
+
+math::Vec3 TargetGroup::fallbackPosition() const
+{
+    if (groupEntity != 0 && world_.exists(groupEntity))
+        return world_.transform(groupEntity).position;
+    return manualPosition;
+}
+
+math::Quat TargetGroup::fallbackRotation() const
+{
+    if (groupEntity != 0 && world_.exists(groupEntity))
+        return world_.transform(groupEntity).rotation;
+    return manualRotation;
+}
+
 void TargetGroup::addMember(EntityId entity, float weight, float radius)
 {
     members_.push_back({entity, std::max(0.0f, weight), std::max(0.0f, radius)});
+    invalidateCache();
 }
 
 bool TargetGroup::removeMember(EntityId entity)
@@ -25,6 +50,7 @@ bool TargetGroup::removeMember(EntityId entity)
     if (index == npos)
         return false;
     members_.erase(members_.begin() + static_cast<std::ptrdiff_t>(index));
+    invalidateCache();
     return true;
 }
 
@@ -41,6 +67,7 @@ std::size_t TargetGroup::findMember(EntityId entity) const
 void TargetGroup::clear()
 {
     members_.clear();
+    invalidateCache();
 }
 
 void TargetGroup::validate()
@@ -51,12 +78,28 @@ void TargetGroup::validate()
         member.radius = std::max(0.0f, member.radius);
     }
     manualRotation = math::normalize(manualRotation);
+    invalidateCache();
 }
 
-std::vector<TargetGroup::ValidMember> TargetGroup::validMembers() const
+void TargetGroup::update(UpdateClock clock)
 {
-    std::vector<ValidMember> result;
-    result.reserve(members_.size());
+    if (clock != selectedClock())
+        return;
+    if (cacheValid_ && !dirty_ && lastUpdateClock_ == clock
+        && lastUpdateFrame_ == currentUpdateFrame())
+    {
+        return;
+    }
+    doUpdate();
+}
+
+void TargetGroup::doUpdate()
+{
+    validMembers_.clear();
+    validMembers_.reserve(members_.size());
+    weightSum_ = 0.0f;
+    maxWeight_ = 0.0f;
+
     for (std::size_t index = 0; index < members_.size(); ++index)
     {
         const Member& member = members_[index];
@@ -66,7 +109,7 @@ std::vector<TargetGroup::ValidMember> TargetGroup::validMembers() const
             continue;
 
         const Transform transform = world_.transform(member.entity);
-        result.push_back({
+        validMembers_.push_back({
             index,
             member.entity,
             transform.position,
@@ -74,108 +117,129 @@ std::vector<TargetGroup::ValidMember> TargetGroup::validMembers() const
             member.weight,
             std::max(0.0f, member.radius),
         });
+        weightSum_ += member.weight;
+        maxWeight_ = std::max(maxWeight_, member.weight);
     }
-    return result;
+
+    const math::Vec3 fallbackPosition = this->fallbackPosition();
+    const math::Quat fallbackRotation = this->fallbackRotation();
+
+    if (validMembers_.empty())
+    {
+        averagePosition_ = fallbackPosition;
+        groupPosition_ = fallbackPosition;
+        groupRotation_ = fallbackRotation;
+        boundingBox_ = {fallbackPosition, math::Vec3::zero};
+        boundingSphere_ = {fallbackPosition, 0.0f};
+    }
+    else
+    {
+        averagePosition_ = math::Vec3::zero;
+        for (const ValidMember& member : validMembers_)
+            averagePosition_ += member.position * member.weight;
+        averagePosition_ = averagePosition_ / weightSum_;
+
+        math::Vec3 boxMin = averagePosition_;
+        math::Vec3 boxMax = averagePosition_;
+        for (const ValidMember& member : validMembers_)
+        {
+            const auto [position, radius] = weightedMemberBounds(member);
+            const math::Vec3 extent{radius, radius, radius};
+            boxMin = math::min(boxMin, position - extent);
+            boxMax = math::max(boxMax, position + extent);
+        }
+        boundingBox_ = {
+            (boxMin + boxMax) * 0.5f,
+            (boxMax - boxMin) * 0.5f,
+        };
+
+        const auto first = weightedMemberBounds(validMembers_.front());
+        math::BoundingSphere sphere{first.first, first.second};
+        for (std::size_t index = 1; index < validMembers_.size(); ++index)
+        {
+            const auto [position, radius] = weightedMemberBounds(validMembers_[index]);
+            const float distance = (position - sphere.center).length() + radius;
+            if (distance > sphere.radius)
+            {
+                const float newRadius = (sphere.radius + distance) * 0.5f;
+                sphere.center = (sphere.center * newRadius
+                    + position * (distance - newRadius)) / distance;
+                sphere.radius = newRadius;
+            }
+        }
+
+        boundingSphere_ = sphere;
+        groupPosition_ = positionMode == PositionMode::GroupCenter
+            ? boundingSphere_.center
+            : averagePosition_;
+
+        if (rotationMode == RotationMode::Manual)
+        {
+            groupRotation_ = fallbackRotation;
+        }
+        else if (weightSum_ <= 0.001f || maxWeight_ <= math::Epsilon)
+        {
+            groupRotation_ = fallbackRotation;
+        }
+        else
+        {
+            math::Vec3 averageForward = math::Vec3::zero;
+            math::Vec3 averageUp = math::Vec3::zero;
+            for (const ValidMember& member : validMembers_)
+            {
+                const float scale = member.weight / weightSum_;
+                averageForward += math::rotate(member.rotation, math::Vec3::forward) * scale;
+                averageUp += math::rotate(member.rotation, math::Vec3::up) * scale;
+            }
+
+            if (averageForward.sqrMagnitude() > 0.0001f
+                && averageUp.sqrMagnitude() > 0.0001f)
+            {
+                groupRotation_ = math::lookRotation(averageForward, averageUp);
+            }
+            else
+            {
+                groupRotation_ = fallbackRotation;
+            }
+        }
+    }
+
+    const UpdateClock clock = selectedClock();
+    lastUpdateClock_ = clock;
+    lastUpdateFrame_ = world_.frame(clock);
+    cacheValid_ = true;
+    dirty_ = false;
+
+    writeBackSucceeded_ = false;
+    if (groupEntity != 0)
+    {
+        Transform transform{};
+        if (world_.exists(groupEntity))
+            transform = world_.transform(groupEntity);
+        transform.position = groupPosition_;
+        transform.rotation = groupRotation_;
+        writeBackSucceeded_ = world_.trySetTransform(groupEntity, transform);
+    }
+}
+
+std::pair<math::Vec3, float> TargetGroup::weightedMemberBounds(
+    const ValidMember& member) const
+{
+    const float ratio = maxWeight_ > math::Epsilon
+        ? member.weight / maxWeight_
+        : 0.0f;
+    return {
+        math::lerp(averagePosition_, member.position, ratio),
+        member.radius * ratio,
+    };
 }
 
 void TargetGroup::refresh() const
 {
-    const std::vector<ValidMember> valid = validMembers();
-    hasValidMembers_ = !valid.empty();
-    if (!hasValidMembers_)
+    if (!cacheValid_ || dirty_ || lastUpdateClock_ != selectedClock()
+        || lastUpdateFrame_ != currentUpdateFrame())
     {
-        groupPosition_ = manualPosition;
-        groupRotation_ = manualRotation;
-        boundingBox_ = {manualPosition, math::Vec3::zero};
-        boundingSphere_ = {manualPosition, 0.0f};
-        return;
-    }
-
-    float weightSum = 0.0f;
-    float maxWeight = 0.0f;
-    math::Vec3 averagePosition = math::Vec3::zero;
-    for (const ValidMember& member : valid)
-    {
-        weightSum += member.weight;
-        maxWeight = std::max(maxWeight, member.weight);
-        averagePosition += member.position * member.weight;
-    }
-    averagePosition = averagePosition / weightSum;
-
-    math::Vec3 boxMin = averagePosition;
-    math::Vec3 boxMax = averagePosition;
-    auto weightedMember = [&](const ValidMember& member)
-    {
-        const float ratio = maxWeight > math::Epsilon
-            ? member.weight / maxWeight
-            : 0.0f;
-        return std::pair{
-            math::lerp(averagePosition, member.position, ratio),
-            member.radius * ratio,
-        };
-    };
-
-    for (const ValidMember& member : valid)
-    {
-        const auto [position, radius] = weightedMember(member);
-        const math::Vec3 extent{radius, radius, radius};
-        boxMin = math::min(boxMin, position - extent);
-        boxMax = math::max(boxMax, position + extent);
-    }
-    boundingBox_ = {
-        (boxMin + boxMax) * 0.5f,
-        (boxMax - boxMin) * 0.5f,
-    };
-
-    const auto first = weightedMember(valid.front());
-    math::BoundingSphere sphere{first.first, first.second};
-    for (std::size_t index = 1; index < valid.size(); ++index)
-    {
-        const auto [position, radius] = weightedMember(valid[index]);
-        const float distance = (position - sphere.center).length() + radius;
-        if (distance > sphere.radius)
-        {
-            const float newRadius = (sphere.radius + distance) * 0.5f;
-            sphere.center = (sphere.center * newRadius
-                + position * (distance - newRadius)) / distance;
-            sphere.radius = newRadius;
-        }
-    }
-
-    boundingSphere_ = sphere;
-    groupPosition_ = positionMode == PositionMode::GroupCenter
-        ? boundingSphere_.center
-        : averagePosition;
-
-    if (rotationMode == RotationMode::Manual)
-    {
-        groupRotation_ = manualRotation;
-        return;
-    }
-
-    if (weightSum <= 0.001f || maxWeight <= math::Epsilon)
-    {
-        groupRotation_ = manualRotation;
-        return;
-    }
-
-    math::Vec3 averageForward = math::Vec3::zero;
-    math::Vec3 averageUp = math::Vec3::zero;
-    for (const ValidMember& member : valid)
-    {
-        const float scale = member.weight / weightSum;
-        averageForward += math::rotate(member.rotation, math::Vec3::forward) * scale;
-        averageUp += math::rotate(member.rotation, math::Vec3::up) * scale;
-    }
-
-    if (averageForward.sqrMagnitude() > 0.0001f
-        && averageUp.sqrMagnitude() > 0.0001f)
-    {
-        groupRotation_ = math::lookRotation(averageForward, averageUp);
-    }
-    else
-    {
-        groupRotation_ = manualRotation;
+        const_cast<TargetGroup*>(this)->doUpdate();
     }
 }
 
@@ -186,7 +250,8 @@ bool TargetGroup::isValid() const
 
 bool TargetGroup::isEmpty() const
 {
-    return validMembers().empty();
+    refresh();
+    return validMembers_.empty();
 }
 
 std::size_t TargetGroup::targetCount() const
@@ -263,43 +328,21 @@ math::Bounds TargetGroup::viewSpaceBoundingBox(
     math::Quat observerRotation,
     bool includeBehind) const
 {
-    const std::vector<ValidMember> valid = validMembers();
+    refresh();
     const math::Quat inverseRotation = math::normalize(math::inverse(observerRotation));
     auto toView = [&](math::Vec3 worldPosition)
     {
         return math::rotate(inverseRotation, worldPosition - observerPosition);
     };
 
-    if (valid.empty())
-        return {toView(manualPosition), math::Vec3::zero};
+    if (validMembers_.empty())
+        return {toView(averagePosition_), math::Vec3::zero};
 
-    float weightSum = 0.0f;
-    float maxWeight = 0.0f;
-    math::Vec3 averagePosition = math::Vec3::zero;
-    for (const ValidMember& member : valid)
-    {
-        weightSum += member.weight;
-        maxWeight = std::max(maxWeight, member.weight);
-        averagePosition += member.position * member.weight;
-    }
-    averagePosition = averagePosition / weightSum;
-
-    auto weightedMember = [&](const ValidMember& member)
-    {
-        const float ratio = maxWeight > math::Epsilon
-            ? member.weight / maxWeight
-            : 0.0f;
-        return std::pair{
-            math::lerp(averagePosition, member.position, ratio),
-            member.radius * ratio,
-        };
-    };
-
-    math::Bounds bounds{toView(averagePosition), math::Vec3::zero};
+    math::Bounds bounds{toView(averagePosition_), math::Vec3::zero};
     bool gotOne = false;
-    for (const ValidMember& member : valid)
+    for (const ValidMember& member : validMembers_)
     {
-        const auto [position, radius] = weightedMember(member);
+        const auto [position, radius] = weightedMemberBounds(member);
         const math::Vec3 viewPosition = toView(position);
         if (viewPosition.z >= 0.0f && !includeBehind)
             continue;
@@ -330,8 +373,8 @@ void TargetGroup::viewSpaceAngularBounds(
     maxAngles = {};
     zRange = {};
 
-    const std::vector<ValidMember> valid = validMembers();
-    if (valid.empty())
+    refresh();
+    if (validMembers_.empty())
         return;
 
     const math::Quat inverseRotation = math::normalize(math::inverse(observerRotation));
@@ -340,33 +383,10 @@ void TargetGroup::viewSpaceAngularBounds(
         return math::rotate(inverseRotation, worldPosition - observerPosition);
     };
 
-    float weightSum = 0.0f;
-    float maxWeight = 0.0f;
-    math::Vec3 averagePosition = math::Vec3::zero;
-    for (const ValidMember& member : valid)
-    {
-        weightSum += member.weight;
-        maxWeight = std::max(maxWeight, member.weight);
-        averagePosition += member.position * member.weight;
-    }
-    averagePosition = averagePosition / weightSum;
-
-    auto weightedMember = [&](const ValidMember& member)
-    {
-        const float ratio = maxWeight > math::Epsilon
-            ? member.weight / maxWeight
-            : 0.0f;
-        return std::pair{
-            math::lerp(averagePosition, member.position, ratio),
-            member.radius * ratio,
-        };
-    };
-
-    const math::BoundingSphere sphere = boundingSphere();
-    const float averageDepth = -toView(averagePosition).z;
+    const float averageDepth = -toView(averagePosition_).z;
     zRange = {
-        averageDepth - sphere.radius,
-        averageDepth + sphere.radius,
+        averageDepth - boundingSphere_.radius,
+        averageDepth + boundingSphere_.radius,
     };
 
     float minTangentX = 0.0f;
@@ -375,9 +395,9 @@ void TargetGroup::viewSpaceAngularBounds(
     float maxTangentY = 0.0f;
     bool haveOne = false;
 
-    for (const ValidMember& member : valid)
+    for (const ValidMember& member : validMembers_)
     {
-        const auto [position, radius] = weightedMember(member);
+        const auto [position, radius] = weightedMemberBounds(member);
         const math::Vec3 viewPosition = toView(position);
         const float depth = -viewPosition.z;
         if (depth <= math::Epsilon)
@@ -420,5 +440,3 @@ void TargetGroup::viewSpaceAngularBounds(
 }
 
 } // namespace cinerig::targets
-
-

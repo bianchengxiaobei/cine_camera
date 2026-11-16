@@ -75,9 +75,10 @@ public:
 
 private:
     void updateInternal(UpdateClock clock, float deltaTime);
+    void processFrameInternal(UpdateClock clock, float effectiveDeltaTime);
     ICinemachineCamera* topCameraFromPriorityQueue() const;
     math::Vec3 effectiveWorldUp() const;
-    float effectiveDeltaTime(float deltaTime) const;
+    float effectiveDeltaTime(UpdateClock clock, float deltaTime) const;
     void applyLensInheritance(CameraState& state) const;
 
     CameraSystem& system_;

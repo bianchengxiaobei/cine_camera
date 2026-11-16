@@ -10,6 +10,8 @@
     virtual_camera_target_test.cpp
     manager_camera_base_test.cpp
     clear_shot_test.cpp
+    clear_shot_quality_test.cpp
+    group_framing_confiner2d_test.cpp
     mixing_camera_test.cpp
     sequencer_camera_test.cpp
     state_driven_camera_test.cpp
@@ -17,6 +19,7 @@
     follow_pipeline_test.cpp
     brain_priority_test.cpp
     brain_blend_test.cpp
+    brain_time_scale_test.cpp
     brain_nested_blend_test.cpp
     brain_override_stack_test.cpp
     timeline_mixer_test.cpp

@@ -2,11 +2,13 @@
 
 #include <cmath>
 #include <memory>
+#include <type_traits>
 #include <vector>
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <cinerig/camera/camera_lens_cache_invalidator.hpp>
 #include <cinerig/components/confiner2d.hpp>
 #include <cinerig/math/damp.hpp>
 #include <cinerig/runtime/camera_system.hpp>
@@ -16,6 +18,18 @@ using namespace cinerig::testing;
 
 namespace
 {
+
+std::vector<std::vector<math::Vec2>> lRoom()
+{
+    return {{
+        {-11.0f, -7.0f},
+        {11.0f, -7.0f},
+        {11.0f, 7.0f},
+        {0.0f, 7.0f},
+        {0.0f, 0.0f},
+        {-11.0f, 0.0f},
+    }};
+}
 
 std::vector<std::vector<math::Vec2>> square(float halfExtent, bool clockwise = false)
 {
@@ -76,6 +90,16 @@ struct Confiner2DFixture
         confiner->invalidateBoundingShapeCache();
     }
 
+    bool bakeFully(float budget = 0.05f)
+    {
+        for (int call = 0; call < 500; ++call)
+        {
+            if (confiner->bakeBoundingShape(*camera, budget))
+                return true;
+        }
+        return false;
+    }
+
     FakeEntityWorld world;
     CameraSystem system{world};
     VirtualCamera* camera = nullptr;
@@ -116,6 +140,17 @@ TEST_CASE("Confiner2D exposes original defaults and validation", "[unit][confine
     REQUIRE(confiner.boundingShape.empty());
     REQUIRE(confiner.damping == Catch::Approx(0.5f));
     REQUIRE(confiner.slowingDistance == Catch::Approx(5.0f));
+}
+
+TEST_CASE("Confiner2D implements the lens cache invalidator interface", "[unit][confiner2d]")
+{
+    static_assert(std::is_base_of_v<ICameraLensCacheInvalidator, Confiner2D>);
+
+    Confiner2D confiner;
+    CameraExtension* extension = &confiner;
+    auto* invalidator = dynamic_cast<ICameraLensCacheInvalidator*>(extension);
+    REQUIRE(invalidator != nullptr);
+    invalidator->invalidateLensCache();
 }
 
 TEST_CASE("Confiner2D calculates orthographic and perspective frustums", "[unit][confiner2d]")
@@ -287,6 +322,65 @@ TEST_CASE("Confiner2D ignores missing shapes", "[unit][confiner2d]")
     fixture.setShape({});
     fixture.body(state);
     REQUIRE(math::approximately(state.correctedPosition(), {4.0f, 2.0f, 0.0f}));
+}
+
+TEST_CASE("Confiner2D reports oversize bake progress and completion",
+    "[unit][confiner2d]")
+{
+    Confiner2DFixture fixture;
+    fixture.confiner->damping = 0.0f;
+    fixture.confiner->slowingDistance = 0.0f;
+    fixture.confiner->oversizeWindow.enabled = true;
+    fixture.confiner->oversizeWindow.maxWindowSize = 0.0f;
+    fixture.setShape(lRoom());
+
+    REQUIRE_FALSE(fixture.confiner->boundingShapeIsBaked());
+    CameraState state = fixture.makeState({0.0f, 0.0f, 0.0f});
+    fixture.body(state);
+    REQUIRE(fixture.confiner->bakingState()
+        == ConfinerOven::BakingState::Baking);
+    REQUIRE_FALSE(fixture.confiner->boundingShapeIsBaked());
+    REQUIRE(fixture.confiner->bakeProgress() >= 0.0f);
+    REQUIRE(fixture.confiner->bakeProgress() <= 1.0f);
+
+    REQUIRE(fixture.bakeFully());
+    REQUIRE(fixture.confiner->boundingShapeIsBaked());
+    REQUIRE(fixture.confiner->bakeProgress() == Catch::Approx(1.0f));
+    CameraState bakedState = fixture.makeState({0.0f, 0.0f, 0.0f});
+    fixture.body(bakedState);
+    REQUIRE_FALSE(fixture.confiner->bakedSolutionPaths(
+        fixture.camera->cameraId()).empty());
+}
+
+TEST_CASE("Confiner2D oversize padding invalidates and changes the bake",
+    "[unit][confiner2d]")
+{
+    Confiner2DFixture fixture;
+    fixture.confiner->damping = 0.0f;
+    fixture.confiner->slowingDistance = 0.0f;
+    fixture.confiner->oversizeWindow.enabled = true;
+    fixture.confiner->oversizeWindow.maxWindowSize = 0.0f;
+    fixture.confiner->oversizeWindow.padding = 0.0f;
+    fixture.setShape(lRoom());
+
+    CameraState narrowState = fixture.makeState({5.0f, 5.0f, 0.0f});
+    narrowState.lens.orthographicSize = 5.5f;
+    fixture.body(narrowState);
+    REQUIRE(fixture.bakeFully());
+    const math::Vec3 narrowPosition = narrowState.correctedPosition();
+
+    fixture.confiner->oversizeWindow.padding = 10.0f;
+    CameraState rebake = fixture.makeState({5.0f, 5.0f, 0.0f});
+    rebake.lens.orthographicSize = 5.5f;
+    fixture.body(rebake);
+    REQUIRE_FALSE(fixture.confiner->boundingShapeIsBaked());
+    REQUIRE(fixture.bakeFully());
+
+    CameraState paddedState = fixture.makeState({5.0f, 5.0f, 0.0f});
+    paddedState.lens.orthographicSize = 5.5f;
+    fixture.body(paddedState);
+    REQUIRE((paddedState.correctedPosition() - narrowPosition).length()
+        > 1e-3f);
 }
 
 TEST_CASE("Confiner2D adjusts cached position for followed target warps",

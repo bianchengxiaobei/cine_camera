@@ -67,6 +67,20 @@ const char* shapeName(ShapeMode mode)
     return "unknown";
 }
 
+const char* bakeStateName(cinerig::ConfinerOven::BakingState state)
+{
+    switch (state)
+    {
+    case cinerig::ConfinerOven::BakingState::Baking:
+        return "baking";
+    case cinerig::ConfinerOven::BakingState::Baked:
+        return "baked";
+    case cinerig::ConfinerOven::BakingState::Timeout:
+        return "timeout";
+    }
+    return "unknown";
+}
+
 std::vector<std::vector<cinerig::math::Vec2>> shapePaths(ShapeMode mode)
 {
     switch (mode)
@@ -200,7 +214,7 @@ int main(int argc, char** argv)
     camera->standbyUpdate = cinerig::StandbyUpdateMode::Always;
     camera->targets.tracking = cinerig::TargetRef::entity(trackingEntity);
     camera->lens.orthographic = true;
-    camera->lens.orthographicSize = 2.2f;
+    camera->lens.orthographicSize = 4.5f;
     camera->lens.nearClipPlane = 0.1f;
     camera->lens.farClipPlane = 100.0f;
     camera->lens.aspect = app.viewportSize().x / app.viewportSize().y;
@@ -232,6 +246,12 @@ int main(int argc, char** argv)
     bool firstShape = false;
     bool firstReset = false;
 
+    const auto configureOversize = [&]() {
+        confiner->oversizeWindow.enabled = true;
+        confiner->oversizeWindow.maxWindowSize = 0.0f;
+        confiner->oversizeWindow.padding = 3.0f;
+    };
+
     const auto applyShape = [&]() {
         confiner->boundingShape = shapePaths(shapeMode);
         confiner->boundingShapeOffset = {};
@@ -243,6 +263,7 @@ int main(int argc, char** argv)
 
     confiner->reset();
     confiner->slowingDistance = 2.0f;
+    configureOversize();
     applyShape();
 
     while (app.running())
@@ -289,6 +310,7 @@ int main(int argc, char** argv)
         {
             confiner->reset();
             confiner->slowingDistance = 2.0f;
+            configureOversize();
             shapeMode = ShapeMode::LRoom;
             applyShape();
         }
@@ -354,15 +376,24 @@ int main(int argc, char** argv)
         app.renderer().setLineWidth(2.5f);
         for (const auto& path : confiner->boundingShape)
             drawPath(app.renderer(), path, 0.025f, {0.25f, 0.85f, 0.95f});
+
+        app.renderer().setLineWidth(1.5f);
+        for (const auto& path : confiner->bakedSolutionPaths(cameraId))
+            drawPath(app.renderer(), path, 0.03f, {0.95f, 0.55f, 1.0f});
         app.renderer().endFrame();
 
         app.hud().begin();
-        app.hud().addLine("CineRig P4-02 confiner 2D");
+        app.hud().addLine("CineRig P6-02 confiner 2D");
         std::ostringstream shapeLine;
         shapeLine << shapeName(shapeMode)
                   << "  baked " << (confiner->boundingShapeIsBaked() ? "yes" : "no")
                   << "  ortho " << camera->lens.orthographicSize;
         app.hud().addLine("Shape", shapeLine.str());
+        std::ostringstream bakeLine;
+        bakeLine << bakeStateName(confiner->bakingState())
+                 << "  " << static_cast<int>(confiner->bakeProgress() * 100.0f)
+                 << "%  padding " << confiner->oversizeWindow.padding;
+        app.hud().addLine("Bake", bakeLine.str());
         std::ostringstream positionLine;
         positionLine << "raw " << state.rawPosition.x << ", " << state.rawPosition.y
                      << " -> corrected " << corrected.x << ", " << corrected.y;
@@ -375,7 +406,9 @@ int main(int argc, char** argv)
         tuningLine << "damping " << confiner->damping
                    << "  slowing " << confiner->slowingDistance;
         app.hud().addLine("Tuning", tuningLine.str());
-        app.hud().addLine("Screen", "green = confined view, grey = desired");
+        app.hud().addLine(
+            "Screen",
+            "green = confined view, grey = desired, magenta = baked solution");
         app.hud().addLine("Controls", "V shape  D damping  S slowing  R reset");
         app.hud().addLine("Frame", std::to_string(app.frameCount()));
         app.hud().render(
@@ -392,5 +425,3 @@ int main(int argc, char** argv)
 
     return 0;
 }
-
-
