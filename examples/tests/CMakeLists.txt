@@ -1,0 +1,19 @@
+add_executable(example_sdl_world_test sdl_world_test.cpp)
+cinerig_register_test(example_sdl_world_test examples)
+target_link_libraries(example_sdl_world_test PRIVATE examples_common)
+
+add_executable(example_camera_output_test sdl_camera_output_test.cpp)
+cinerig_register_test(example_camera_output_test examples)
+target_link_libraries(example_camera_output_test PRIVATE examples_common)
+
+add_executable(example_input_physics_test input_physics_test.cpp)
+cinerig_register_test(example_input_physics_test examples)
+target_link_libraries(example_input_physics_test PRIVATE examples_common)
+
+add_executable(example_follow_scene_test follow_scene_test.cpp)
+cinerig_register_test(example_follow_scene_test examples)
+target_link_libraries(example_follow_scene_test PRIVATE examples_common)
+
+add_executable(example_blend_scene_test blend_scene_test.cpp)
+cinerig_register_test(example_blend_scene_test examples)
+target_link_libraries(example_blend_scene_test PRIVATE examples_common)
